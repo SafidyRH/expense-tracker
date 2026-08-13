@@ -2,16 +2,23 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 
 import { prisma } from "@expense-tracker/database";
+import { auth } from "./lib/auth.js";
+
+import {requireAuth} from "./middleware/auth.middleware.js";
 
 const app = new Hono();
 
 app.use(
   "*",
   cors({
-    origin: "http://localhost:3001",
+    origin: "http://localhost:3000",
     credentials: true,
   })
 );
+
+app.all("/api/auth/*", (c) => {
+  return auth.handler(c.req.raw);
+});
 
 app.get("/", (c) => {
   return c.json({
@@ -52,6 +59,14 @@ app.get("/health", async (c) => {
       503
     );
   }
+});
+
+app.get("/me", requireAuth, (c) => {
+  const session = c.get("session");
+
+  return c.json({
+    user: session!.user,
+  });
 });
 
 export default app;
