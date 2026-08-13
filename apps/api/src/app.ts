@@ -6,6 +6,10 @@ import { auth } from "./lib/auth.js";
 
 import {requireAuth} from "./middleware/auth.middleware.js";
 
+import {
+  accountRoutes,
+} from "./modules/accounts/index.js";
+
 const app = new Hono();
 
 app.use(
@@ -68,5 +72,10 @@ app.get("/me", requireAuth, (c) => {
     user: session!.user,
   });
 });
+
+app.route(
+  "/api/accounts",
+  accountRoutes
+);
 
 export default app;
