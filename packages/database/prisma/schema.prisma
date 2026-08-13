@@ -11,3 +11,224 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+
+// ======================================================
+// ENUMS
+// ======================================================
+
+enum FinancialAccountType {
+  CASH
+  BANK
+  MOBILE_MONEY
+  E_WALLET
+  CREDIT_CARD
+  OTHER
+}
+
+enum TransactionType {
+  EXPENSE
+  INCOME
+  TRANSFER
+  ADJUSTMENT
+}
+
+enum TransactionStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+}
+
+enum CategoryType {
+  EXPENSE
+  INCOME
+}
+
+// ======================================================
+// USER
+// ======================================================
+
+model User {
+  id String @id @default(uuid()) @db.Uuid
+
+  name          String
+  email         String  @unique
+  emailVerified Boolean @default(false) @map("email_verified")
+  image         String?
+
+  defaultCurrency String @default("MGA") @map("default_currency") @db.VarChar(3)
+  timezone        String @default("Indian/Antananarivo")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  financialAccounts FinancialAccount[]
+  transactions      Transaction[]
+  categories        Category[]
+
+  @@map("user")
+}
+
+// ======================================================
+// FINANCIAL ACCOUNTS
+// ======================================================
+
+model FinancialAccount {
+  id String @id @default(uuid()) @db.Uuid
+
+  userId String @map("user_id") @db.Uuid
+
+  name String
+
+  type FinancialAccountType
+
+  institutionName String? @map("institution_name")
+
+  currencyCode String @default("MGA") @map("currency_code") @db.VarChar(3)
+
+  initialBalanceMinor BigInt @default(0) @map("initial_balance_minor")
+  cachedBalanceMinor  BigInt @default(0) @map("cached_balance_minor")
+
+  isArchived Boolean @default(false) @map("is_archived")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  entries TransactionEntry[]
+
+  @@index([userId, isArchived])
+  @@index([userId, type])
+  @@map("financial_accounts")
+}
+
+// ======================================================
+// TRANSACTIONS
+// ======================================================
+
+model Transaction {
+  id String @id @default(uuid()) @db.Uuid
+
+  userId String @map("user_id") @db.Uuid
+
+  type   TransactionType
+  status TransactionStatus @default(CONFIRMED)
+
+  description String?
+  note        String?
+
+  occurredAt DateTime @default(now()) @map("occurred_at")
+
+  // Important pour la synchronisation offline PWA
+  clientGeneratedId String @default(uuid()) @map("client_generated_id") @db.Uuid
+
+  // Optimistic concurrency
+  version Int @default(1)
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  entries     TransactionEntry[]
+  allocations TransactionAllocation[]
+
+  @@unique([userId, clientGeneratedId])
+  @@index([userId, occurredAt(sort: Desc)])
+  @@index([userId, type, occurredAt(sort: Desc)])
+  @@index([userId, status])
+  @@map("transactions")
+}
+
+// ======================================================
+// TRANSACTION ENTRIES
+// ======================================================
+
+model TransactionEntry {
+  id String @id @default(uuid()) @db.Uuid
+
+  transactionId String @map("transaction_id") @db.Uuid
+  accountId     String @map("account_id") @db.Uuid
+
+  // Positif = argent entrant
+  // Négatif = argent sortant
+  amountMinor BigInt @map("amount_minor")
+
+  currencyCode String @map("currency_code") @db.VarChar(3)
+
+  exchangeRate Decimal? @map("exchange_rate") @db.Decimal(20, 10)
+
+  baseAmountMinor BigInt? @map("base_amount_minor")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  transaction Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+
+  account FinancialAccount @relation(fields: [accountId], references: [id], onDelete: Restrict)
+
+  @@index([transactionId])
+  @@index([accountId])
+  @@index([accountId, createdAt])
+  @@map("transaction_entries")
+}
+
+// ======================================================
+// CATEGORIES
+// ======================================================
+
+model Category {
+  id String @id @default(uuid()) @db.Uuid
+
+  // NULL = catégorie système
+  userId String? @map("user_id") @db.Uuid
+
+  name String
+
+  type CategoryType
+
+  icon String?
+
+  parentId String? @map("parent_id") @db.Uuid
+
+  isSystem Boolean @default(false) @map("is_system")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  parent   Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children Category[] @relation("CategoryHierarchy")
+
+  allocations TransactionAllocation[]
+
+  @@index([userId, type])
+  @@index([parentId])
+  @@map("categories")
+}
+
+// ======================================================
+// TRANSACTION ALLOCATIONS
+// ======================================================
+
+model TransactionAllocation {
+  id String @id @default(uuid()) @db.Uuid
+
+  transactionId String @map("transaction_id") @db.Uuid
+  categoryId    String @map("category_id") @db.Uuid
+
+  amountMinor BigInt @map("amount_minor")
+
+  note String?
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  transaction Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+
+  @@index([transactionId])
+  @@index([categoryId])
+  @@map("transaction_allocations")
+}
