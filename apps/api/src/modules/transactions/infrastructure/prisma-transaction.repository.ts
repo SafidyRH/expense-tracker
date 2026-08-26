@@ -1,5 +1,5 @@
 import { prisma } from "@expense-tracker/database";
-import { Prisma } from "@expense-tracker/database";
+import type { Prisma } from "@expense-tracker/database";
 
 import type {
   CreateExpenseInput,
@@ -9,6 +9,40 @@ import type {
 import type {
   TransactionRepository,
 } from "../domain/transaction.repository.js";
+
+import type {
+  TransactionHistoryFilters,
+  TransactionHistoryResult,
+} from "../domain/transaction-history.js";
+
+const transactionHistoryInclude = {
+  entries: {
+    include: {
+      account: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+    },
+  },
+
+  allocations: {
+    include: {
+      category: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+    },
+  },
+} satisfies Prisma.TransactionInclude;
+
+type TransactionHistoryRecord =
+  Prisma.TransactionGetPayload<{
+    include: typeof transactionHistoryInclude;
+  }>;
 
 export class PrismaTransactionRepository
   implements TransactionRepository
@@ -267,4 +301,178 @@ export class PrismaTransactionRepository
       };
     });
   }
+
+  async listHistory(
+  filters: TransactionHistoryFilters
+): Promise<TransactionHistoryResult> {
+  const cursorCondition = filters.cursor
+    ? {
+        OR: [
+          {
+            occurredAt: {
+              lt: filters.cursor.occurredAt,
+            },
+          },
+          {
+            occurredAt: filters.cursor.occurredAt,
+
+            id: {
+              lt: filters.cursor.id,
+            },
+          },
+        ],
+      }
+    : undefined;
+
+  const transactions =
+    await prisma.transaction.findMany({
+      where: {
+        userId: filters.userId,
+
+        // Les suppressions logiques n'apparaissent pas.
+        deletedAt: null,
+
+        ...(filters.type && {
+          type: filters.type,
+        }),
+
+        ...(filters.dateFrom ||
+        filters.dateTo
+          ? {
+              occurredAt: {
+                ...(filters.dateFrom && {
+                  gte: filters.dateFrom,
+                }),
+
+                ...(filters.dateTo && {
+                  lte: filters.dateTo,
+                }),
+              },
+            }
+          : {}),
+
+        ...(filters.accountId
+          ? {
+              entries: {
+                some: {
+                  accountId:
+                    filters.accountId,
+                },
+              },
+            }
+          : {}),
+
+        ...(filters.categoryId
+          ? {
+              allocations: {
+                some: {
+                  categoryId:
+                    filters.categoryId,
+                },
+              },
+            }
+          : {}),
+
+        ...(cursorCondition
+          ? {
+              AND: [
+                cursorCondition,
+              ],
+            }
+          : {}),
+      },
+
+      include: transactionHistoryInclude,
+
+      orderBy: [
+        {
+          occurredAt: "desc",
+        },
+        {
+          id: "desc",
+        },
+      ],
+
+      // +1 pour savoir s'il existe une page suivante
+      take: filters.limit + 1,
+    });
+
+  const hasMore =
+    transactions.length >
+    filters.limit;
+
+  const page: TransactionHistoryRecord[] =
+  hasMore
+    ? transactions.slice(
+        0,
+        filters.limit
+      )
+    : transactions;
+
+  return {
+    hasMore,
+
+    items: page.map(
+      (transaction) => ({
+        id: transaction.id,
+
+        type: transaction.type,
+
+        status:
+          transaction.status,
+
+        description:
+          transaction.description,
+
+        note:
+          transaction.note,
+
+        occurredAt:
+          transaction.occurredAt,
+
+        clientGeneratedId:
+          transaction.clientGeneratedId,
+
+        createdAt:
+          transaction.createdAt,
+
+        entries:
+          transaction.entries.map(
+            (entry) => ({
+              id: entry.id,
+
+              accountId:
+                entry.accountId,
+
+              accountName:
+                entry.account.name,
+
+              amountMinor:
+                entry.amountMinor,
+
+              currencyCode:
+                entry.currencyCode,
+            })
+          ),
+
+        allocations:
+          transaction.allocations.map(
+            (allocation) => ({
+              id: allocation.id,
+
+              categoryId:
+                allocation.categoryId,
+
+              categoryName:
+                allocation.category
+                  .name,
+
+              amountMinor:
+                allocation.amountMinor,
+            })
+          ),
+      })
+    ),
+  };
+}
 }

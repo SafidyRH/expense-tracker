@@ -30,12 +30,33 @@ import {
   toExpenseDto,
 } from "./transaction.mapper.js";
 
+import {
+  ListTransactions,
+} from "../application/list-transactions.js";
+
+import {
+  decodeTransactionCursor,
+  encodeTransactionCursor,
+} from "../application/transaction-cursor.js";
+
+import {
+  transactionHistoryQuerySchema,
+} from "./transaction.schemas.js";
+
+import {
+  toTransactionHistoryDto,
+} from "./transaction.mapper.js";
 
 const repository =
   new PrismaTransactionRepository();
 
 const createExpense =
   new CreateExpense(repository);
+
+  const listTransactions =
+  new ListTransactions(
+    repository
+  );
 
 export const transactionRoutes =
   new Hono<AuthEnv>();
@@ -161,3 +182,111 @@ transactionRoutes.post(
     );
   }
 );
+
+transactionRoutes.get(
+  "/",
+
+  zValidator(
+    "query",
+    transactionHistoryQuerySchema
+  ),
+
+  async (c) => {
+    const session =
+      c.get("session");
+
+    const query =
+      c.req.valid("query");
+
+    let cursor;
+
+    if (query.cursor) {
+      cursor =
+        decodeTransactionCursor(
+          query.cursor
+        );
+
+      if (!cursor) {
+        return c.json(
+          {
+            error: {
+              code:
+                "INVALID_CURSOR",
+
+              message:
+                "Invalid transaction cursor",
+            },
+          },
+          400
+        );
+      }
+    }
+
+    const result =
+      await listTransactions.execute({
+        userId:
+          session!.user.id,
+
+        type:
+          query.type,
+
+        accountId:
+          query.accountId,
+
+        categoryId:
+          query.categoryId,
+
+        dateFrom:
+          query.dateFrom
+            ? new Date(
+                query.dateFrom
+              )
+            : undefined,
+
+        dateTo:
+          query.dateTo
+            ? new Date(
+                query.dateTo
+              )
+            : undefined,
+
+        limit:
+          query.limit,
+
+        cursor:
+          cursor ?? undefined,
+      });
+
+    const lastItem =
+      result.items.at(-1);
+
+    const nextCursor =
+      result.hasMore &&
+      lastItem
+        ? encodeTransactionCursor({
+            id: lastItem.id,
+
+            occurredAt:
+              lastItem.occurredAt,
+          })
+        : null;
+
+    return c.json({
+      data:
+        result.items.map(
+          toTransactionHistoryDto
+        ),
+
+      pagination: {
+        limit:
+          query.limit,
+
+        hasMore:
+          result.hasMore,
+
+        nextCursor,
+      },
+    });
+  }
+);
+
