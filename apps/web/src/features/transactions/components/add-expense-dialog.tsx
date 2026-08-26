@@ -225,11 +225,7 @@ export function AddExpenseDialog() {
           {error && <p className="text-sm text-destructive">{error}</p>}
 
           <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setOpen(false)}
-            >
+            <Button variant="outline" onClick={() => setOpen(false)}>
               Annuler
             </Button>
 
