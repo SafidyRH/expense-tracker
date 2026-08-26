@@ -64,3 +64,47 @@ export interface TransactionsResponse {
       | null;
   };
 }
+
+export interface CreateExpenseInput {
+  accountId: string;
+  categoryId: string;
+
+  amountMinor: string;
+
+  description?: string;
+  note?: string;
+
+  occurredAt?: string;
+
+  clientGeneratedId?: string;
+}
+
+export interface CreateExpenseResponse {
+  data: {
+    id: string;
+
+    type: "EXPENSE";
+
+    accountId: string;
+    categoryId: string;
+
+    amountMinor: string;
+
+    currencyCode: string;
+
+    description: string | null;
+    note: string | null;
+
+    occurredAt: string;
+
+    clientGeneratedId: string;
+
+    balanceAfterMinor: string;
+
+    createdAt: string;
+  };
+
+  meta: {
+    duplicated: boolean;
+  };
+}
