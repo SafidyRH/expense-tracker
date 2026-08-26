@@ -9,6 +9,12 @@ import {requireAuth} from "./middleware/auth.middleware.js";
 import {
   accountRoutes,
 } from "./modules/accounts/index.js";
+import {
+  categoryRoutes,
+} from "./modules/categories/index.js";
+import {
+  transactionRoutes,
+} from "./modules/transactions/index.js";
 
 const app = new Hono();
 
@@ -76,6 +82,14 @@ app.get("/me", requireAuth, (c) => {
 app.route(
   "/api/accounts",
   accountRoutes
+);
+app.route(
+  "/api/categories",
+  categoryRoutes
+);
+app.route(
+  "/api/transactions",
+  transactionRoutes
 );
 
 export default app;
