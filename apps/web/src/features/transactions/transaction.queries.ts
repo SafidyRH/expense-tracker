@@ -9,15 +9,21 @@ import {
   getTransactions,
 } from "./transaction.api";
 
-export function useTransactions() {
+import type {
+  TransactionQuery,
+} from "./transaction.api";
+
+export function useTransactions(
+  query: TransactionQuery = {}
+) {
   return useQuery({
     queryKey: [
       "transactions",
-      "latest",
+      query,
     ],
 
-    queryFn:
-      getTransactions,
+    queryFn: () =>
+      getTransactions(query),
   });
 }
 
