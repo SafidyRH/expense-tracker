@@ -1,10 +1,14 @@
+export const financialAccountTypes = [
+  "CASH",
+  "BANK",
+  "MOBILE_MONEY",
+  "E_WALLET",
+  "CREDIT_CARD",
+  "OTHER",
+] as const;
+
 export type FinancialAccountType =
-  | "CASH"
-  | "BANK"
-  | "MOBILE_MONEY"
-  | "E_WALLET"
-  | "CREDIT_CARD"
-  | "OTHER";
+  (typeof financialAccountTypes)[number];
 
 export interface FinancialAccount {
   id: string;
@@ -13,14 +17,11 @@ export interface FinancialAccount {
 
   type: FinancialAccountType;
 
-  institutionName:
-    | string
-    | null;
+  institutionName: string | null;
 
   currencyCode: string;
 
   initialBalanceMinor: string;
-
   balanceMinor: string;
 
   isArchived: boolean;
@@ -31,4 +32,20 @@ export interface FinancialAccount {
 
 export interface AccountsResponse {
   data: FinancialAccount[];
+}
+
+export interface AccountResponse {
+  data: FinancialAccount;
+}
+
+export interface CreateFinancialAccountInput {
+  name: string;
+
+  type: FinancialAccountType;
+
+  institutionName?: string | null;
+
+  currencyCode?: string;
+
+  initialBalanceMinor?: string;
 }
