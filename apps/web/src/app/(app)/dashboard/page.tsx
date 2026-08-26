@@ -9,6 +9,7 @@ import { useTransactions } from "@/features/transactions/transaction.queries";
 import { Button } from "@/components/ui/button";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { redirect } from "next/dist/client/components/navigation";
 
 export default function DashboardPage() {
   const { data: session } = authClient.useSession();
@@ -20,7 +21,7 @@ export default function DashboardPage() {
   async function logout() {
     await authClient.signOut();
 
-    window.location.href = "/login";
+    redirect("/login");
   }
 
   const totalBalance =
