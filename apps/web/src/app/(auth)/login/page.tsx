@@ -6,7 +6,7 @@ import Link from "next/link";
 
 import { useRouter } from "next/navigation";
 
-import { authClient } from "@/lib/auth-client";
+import { useLogin } from "@/features/auth/auth.mutations";
 
 import { Button } from "@/components/ui/button";
 
@@ -25,35 +25,34 @@ import { Label } from "@/components/ui/label";
 export default function LoginPage() {
   const router = useRouter();
 
+  const loginMutation = useLogin();
+
   const [email, setEmail] = useState("");
 
   const [password, setPassword] = useState("");
 
   const [error, setError] = useState<string | null>(null);
 
-  const [loading, setLoading] = useState(false);
-
-  async function handleSubmit(event: FormEvent) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    setLoading(true);
     setError(null);
 
-    const result = await authClient.signIn.email({
-      email,
-      password,
-    });
+    try {
+      await loginMutation.mutateAsync({
+        email: email.trim().toLowerCase(),
 
-    setLoading(false);
+        password,
+      });
 
-    if (result.error) {
-      setError(result.error.message ?? "Email ou mot de passe incorrect.");
+      router.replace("/dashboard");
 
-      return;
+      router.refresh();
+    } catch (error) {
+      setError(
+        error instanceof Error ? error.message : "Impossible de se connecter.",
+      );
     }
-
-    router.replace("/dashboard");
-    router.refresh();
   }
 
   return (
@@ -75,6 +74,7 @@ export default function LoginPage() {
               <Input
                 id="email"
                 type="email"
+                placeholder="vous@example.com"
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
                 required
@@ -95,8 +95,12 @@ export default function LoginPage() {
 
             {error && <p className="text-sm text-destructive">{error}</p>}
 
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Connexion..." : "Se connecter"}
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={loginMutation.isPending}
+            >
+              {loginMutation.isPending ? "Connexion..." : "Se connecter"}
             </Button>
 
             <p className="text-center text-sm text-muted-foreground">
