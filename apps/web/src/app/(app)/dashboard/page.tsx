@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { AddExpenseDialog } from "@/features/transactions/components/add-expense-dialog";
 
 import { formatMoney } from "@/lib/money";
@@ -104,8 +105,13 @@ export default function DashboardPage() {
       </section>
 
       <section>
-        <h2 className="mb-4 text-xl font-semibold">Mes comptes</h2>
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-xl font-semibold">Mes comptes</h2>
 
+          <Button variant="outline">
+            <Link href="/accounts">Voir tous les comptes</Link>
+          </Button>
+        </div>
         {accounts.isPending && <p>Chargement des comptes...</p>}
 
         <div className="grid gap-4 md:grid-cols-3">
