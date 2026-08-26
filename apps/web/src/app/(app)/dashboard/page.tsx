@@ -5,23 +5,36 @@ import { authClient } from "@/lib/auth-client";
 import { useAccounts } from "@/features/accounts/account.queries";
 
 import { useTransactions } from "@/features/transactions/transaction.queries";
+import { useLogout } from "@/features/auth/auth.mutations";
 
 import { Button } from "@/components/ui/button";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { redirect } from "next/dist/client/components/navigation";
+import { useRouter } from "next/navigation";
+import { AddExpenseDialog } from "@/features/transactions/components/add-expense-dialog";
+
+import { formatMoney } from "@/lib/money";
 
 export default function DashboardPage() {
+  const router = useRouter();
+
+  const logoutMutation = useLogout();
   const { data: session } = authClient.useSession();
 
   const accounts = useAccounts();
 
   const transactions = useTransactions();
 
-  async function logout() {
-    await authClient.signOut();
+  async function handleLogout() {
+    try {
+      await logoutMutation.mutateAsync();
 
-    redirect("/login");
+      router.replace("/login");
+
+      router.refresh();
+    } catch (error) {
+      console.error("Logout failed", error);
+    }
   }
 
   const totalBalance =
@@ -32,16 +45,24 @@ export default function DashboardPage() {
 
   return (
     <main className="mx-auto max-w-7xl space-y-8 p-6">
-      <header className="flex items-center justify-between">
+      <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="text-sm text-muted-foreground">Bonjour</p>
 
           <h1 className="text-2xl font-semibold">{session?.user.name}</h1>
         </div>
 
-        <Button variant="outline" onClick={logout}>
-          Déconnexion
-        </Button>
+        <div className="flex items-center gap-2">
+          <AddExpenseDialog />
+
+          <Button
+            variant="outline"
+            onClick={handleLogout}
+            disabled={logoutMutation.isPending}
+          >
+            {logoutMutation.isPending ? "Déconnexion..." : "Déconnexion"}
+          </Button>
+        </div>
       </header>
 
       <section className="grid gap-4 md:grid-cols-3">
@@ -96,7 +117,7 @@ export default function DashboardPage() {
 
               <CardContent>
                 <p className="text-2xl font-semibold">
-                  {BigInt(account.balanceMinor).toLocaleString("fr-FR")} Ar
+                  {formatMoney(account.balanceMinor, account.currencyCode)} Ar
                 </p>
 
                 <p className="mt-1 text-sm text-muted-foreground">
