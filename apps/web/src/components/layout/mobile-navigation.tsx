@@ -62,9 +62,9 @@ export function MobileNavigation() {
     usePathname();
 
   return (
-    <div className="fixed inset-x-0 bottom-3 z-50">
-      <div className="mx-auto w-full max-w-[460px] px-4">
-        <nav className="grid grid-cols-5 rounded-[29px] border border-[#ccc7bf] bg-[#e8e4dd]/95 p-[5px] shadow-[0_6px_24px_rgba(0,0,0,0.12)] backdrop-blur-xl">
+    <div className="fixed inset-x-0 bottom-[20px] z-50 lg:hidden">
+      <div className="mx-auto w-full max-w-[469px] px-[18px]">
+        <nav className="grid grid-cols-5 rounded-[31px] border border-[#ccc7bf] bg-[#e8e4dd]/95 p-[5px] shadow-[0_8px_26px_rgba(0,0,0,0.14)] backdrop-blur-xl">
           {navigationItems.map(
             (item) => {
               const active =
@@ -83,7 +83,7 @@ export function MobileNavigation() {
                     item.href
                   }
                   className={cn(
-                    "flex min-w-0 flex-col items-center justify-center gap-1 rounded-[22px] px-1 py-[9px] text-[9px] text-[#605d58] transition-colors",
+                    "flex min-h-[57px] min-w-0 flex-col items-center justify-center gap-1 rounded-[25px] px-1 text-[9px] text-[#605d58] transition-colors",
                     active &&
                       "bg-[#d0ccc5] text-neutral-950"
                   )}

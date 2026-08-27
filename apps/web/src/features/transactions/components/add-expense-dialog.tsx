@@ -201,12 +201,14 @@ export function AddExpenseDialog() {
         }
       }}
     >
-      <DialogTrigger>
-        <Button className="h-12 rounded-full bg-neutral-950 px-5 text-[12px] font-medium text-white shadow-[0_8px_24px_rgba(0,0,0,0.25)] hover:bg-neutral-800">
-          <Plus className="mr-2 size-[16px]" />
+      <DialogTrigger
+        render={
+          <Button className="h-12 rounded-full bg-neutral-950 px-5 text-[12px] font-medium text-white shadow-[0_8px_24px_rgba(0,0,0,0.25)] hover:bg-neutral-800" />
+        }
+      >
+        <Plus className="mr-2 size-[16px]" />
 
-          Ajouter une transaction
-        </Button>
+        Ajouter une transaction
       </DialogTrigger>
 
       <DialogContent className="w-[calc(100%-32px)] max-w-[420px] rounded-[28px] border-0 p-5">

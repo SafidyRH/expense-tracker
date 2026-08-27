@@ -9,9 +9,11 @@ import { AppMenu } from "./app-menu";
 
 export function AppHeader() {
   return (
-    <header className="flex h-[126px] items-center justify-between px-5 pt-3">
+    <header className="flex h-[128px] items-start justify-between px-[18px] pt-[68px] lg:h-[104px] lg:px-8 lg:pt-7">
       <div className="flex items-center gap-4">
-        <AppMenu />
+        <div className="lg:hidden">
+          <AppMenu />
+        </div>
 
         <div className="leading-tight">
           <p className="text-[15px] font-semibold tracking-[-0.01em]">
@@ -27,7 +29,7 @@ export function AppHeader() {
           type="button"
           variant="ghost"
           size="icon"
-          className="size-11 rounded-full bg-white shadow-[0_3px_12px_rgba(0,0,0,0.06)] hover:bg-white"
+          className="size-11 rounded-full bg-white shadow-[0_6px_16px_rgba(0,0,0,0.08)] hover:bg-white"
         >
           <CircleUserRound className="size-[18px]" />
         </Button>
@@ -36,7 +38,7 @@ export function AppHeader() {
           type="button"
           variant="ghost"
           size="icon"
-          className="size-11 rounded-full bg-white shadow-[0_3px_12px_rgba(0,0,0,0.06)] hover:bg-white"
+          className="size-11 rounded-full bg-white shadow-[0_6px_16px_rgba(0,0,0,0.08)] hover:bg-white"
         >
           <Layers3 className="size-[18px]" />
         </Button>

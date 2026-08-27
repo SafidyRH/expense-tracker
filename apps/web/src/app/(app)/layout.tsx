@@ -1,9 +1,10 @@
 import { AuthGuard } from "@/components/auth/auth-guard";
+import { AppShell } from "@/components/layout/app-shell";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <AuthGuard>
-      <div className="min-h-screen bg-muted/30">{children}</div>
+      <AppShell>{children}</AppShell>
     </AuthGuard>
   );
 }

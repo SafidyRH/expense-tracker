@@ -11,6 +11,7 @@ import {
   Box,
   CalendarDays,
   ChartNoAxesColumnIncreasing,
+  CircleGauge,
   Clock3,
   Landmark,
   LayoutDashboard,
@@ -18,6 +19,7 @@ import {
   Menu,
   PiggyBank,
   Settings,
+  Sun,
   WalletCards,
 } from "lucide-react";
 
@@ -119,6 +121,12 @@ const navigationGroups = [
       },
 
       {
+        label: "Impôts",
+        href: "/taxes",
+        icon: <CircleGauge className="size-[18px]" />,
+      },
+
+      {
         label: "Rapports",
         href: "/reports",
         icon: <ChartNoAxesColumnIncreasing className="size-[18px]" />,
@@ -171,32 +179,33 @@ export function AppMenu() {
 
   return (
     <Sheet>
-      <SheetTrigger>
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          className="size-11 rounded-full bg-white shadow-[0_3px_12px_rgba(0,0,0,0.06)] hover:bg-white"
-        >
-          <Menu className="size-[18px]" />
-        </Button>
+      <SheetTrigger
+        render={
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="size-11 rounded-full bg-white shadow-[0_6px_16px_rgba(0,0,0,0.08)] hover:bg-white"
+          />
+        }
+      >
+        <Menu className="size-[18px]" />
       </SheetTrigger>
 
       <SheetContent
         side="left"
-        className="w-[82vw] max-w-[330px] border-0 bg-[#f5f3ef] p-0"
+        showCloseButton={false}
+        className="w-[68vw] max-w-[318px] border-0 bg-[#f5f3ef] p-0 shadow-none"
       >
         <div className="flex h-full flex-col">
-          <div className="px-6 pb-4 pt-8">
-            <p className="text-base font-semibold tracking-tight">
-              Expense Tracker
-            </p>
+          <div className="px-[19px] pb-[33px] pt-[75px]">
+            <Sun className="size-[29px]" strokeWidth={1.8} />
           </div>
 
           <div className="flex-1 overflow-y-auto px-3 pb-6">
             {navigationGroups.map((group) => (
-              <div key={group.label} className="mb-5">
-                <p className="mb-2 px-3 text-[11px] text-[#85817b]">
+              <div key={group.label} className="mb-[19px]">
+                <p className="mb-[7px] px-3 text-[11px] font-medium text-[#77736d]">
                   {group.label}
                 </p>
 
@@ -207,20 +216,23 @@ export function AppMenu() {
                       pathname.startsWith(`${item.href}/`);
 
                     return (
-                      <SheetClose key={item.href}>
-                        <Link
-                          href={item.href}
-                          className={cn(
-                            "flex items-center gap-3 rounded-[12px] px-3 py-[10px] text-[14px] transition-colors",
-                            active
-                              ? "bg-[#d7d4cf] font-medium text-neutral-950"
-                              : "text-[#373532] hover:bg-[#e8e5df]",
-                          )}
-                        >
-                          {item.icon}
+                      <SheetClose
+                        key={item.href}
+                        render={
+                          <Link
+                            href={item.href}
+                            className={cn(
+                              "flex h-[42px] items-center gap-3 rounded-[8px] px-3 text-[14px] transition-colors",
+                              active
+                                ? "bg-[#d7d5d2] font-medium text-neutral-950"
+                                : "text-[#373532] hover:bg-[#e8e5df]",
+                            )}
+                          />
+                        }
+                      >
+                        {item.icon}
 
-                          <span>{item.label}</span>
-                        </Link>
+                        <span>{item.label}</span>
                       </SheetClose>
                     );
                   })}
@@ -229,7 +241,7 @@ export function AppMenu() {
             ))}
           </div>
 
-          <div className="border-t border-[#dedbd5] px-4 py-4">
+          <div className="px-[18px] pb-[22px] pt-4">
             <div className="flex items-center gap-3">
               <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-xs font-medium text-white">
                 {initials}
@@ -249,7 +261,7 @@ export function AppMenu() {
                 type="button"
                 variant="ghost"
                 size="icon"
-                className="size-9 shrink-0 rounded-full bg-white"
+                className="size-11 shrink-0 rounded-full bg-white shadow-[0_6px_18px_rgba(0,0,0,0.1)] hover:bg-white"
               >
                 <Settings className="size-4" />
               </Button>

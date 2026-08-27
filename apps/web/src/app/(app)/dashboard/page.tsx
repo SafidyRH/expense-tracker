@@ -1,10 +1,13 @@
 "use client";
 
+import Link from "next/link";
+
 import {
-  ArrowUpRight,
-  Landmark,
+  CalendarDays,
+  Clock3,
   List,
   ReceiptText,
+  Utensils,
   WalletCards,
 } from "lucide-react";
 
@@ -130,10 +133,19 @@ export default function DashboardPage() {
     weeklyTransactions.data?.data
       .length ?? 0;
 
+  const weekFrom =
+    formatShortDate(
+      weekRange.from
+    );
+
+  const weekTo =
+    formatShortDate(
+      weekRange.to
+    );
+
   return (
-    <main className="space-y-4">
-      {/* KPI GRID */}
-      <section className="grid grid-cols-2 gap-3">
+    <main className="mx-auto max-w-[425px] space-y-[14px] lg:max-w-none lg:space-y-5">
+      <section className="grid grid-cols-2 gap-[14px] lg:grid-cols-4 lg:gap-5">
         <DashboardCard
           icon={
             <WalletCards className="size-[15px]" />
@@ -148,113 +160,117 @@ export default function DashboardPage() {
 
         <DashboardCard
           icon={
-            <ArrowUpRight className="size-[15px]" />
+            <Clock3 className="size-[15px]" />
           }
-          label="Dépenses"
+          label="Budget"
           value={formatMoney(
-            monthlySpent
+            totalBalance
           )}
-          subtitle="Ce mois"
+          subtitle="Restant"
         >
-          <div className="space-y-2">
-            <div className="h-[7px] overflow-hidden rounded-full bg-[#eeece8]">
-              <div className="h-full w-[58%] rounded-full bg-[#2fcb71]" />
+          <div className="space-y-[12px]">
+            <div className="h-[13px] overflow-hidden rounded-full bg-[#eeece8]">
+              <div className="h-full w-[48%] rounded-full bg-[#32c96a]" />
             </div>
 
-            <p className="text-[10px] leading-4 text-[#8a867f]">
-              Suivi des dépenses
-              mensuelles
+            <p className="text-[12px] leading-[18px] text-[#6f6b66]">
+              {formatMoney(
+                monthlySpent
+              )}{" "}
+              dépensé ce mois
             </p>
           </div>
         </DashboardCard>
 
         <DashboardCard
           icon={
-            <Landmark className="size-[15px]" />
+            <CalendarDays className="size-[15px]" />
           }
-          label="Comptes"
-          value={`${accountCount}`}
-          subtitle={`${accountCount} compte${
-            accountCount > 1
-              ? "s"
-              : ""
-          } actif${
-            accountCount > 1
-              ? "s"
-              : ""
-          }`}
+          label="Obligations"
+          value={formatMoney(
+            monthlySpent
+          )}
         >
-          <div className="flex items-center gap-2">
-            <div className="h-[5px] flex-1 rounded-full bg-[#dcd8d1]" />
+          <div className="space-y-[5px] text-[12px] leading-[17px] text-[#6f6b66]">
+            <p>
+              Dépenses restant ce mois-ci
+            </p>
 
-            <div className="h-[5px] w-8 rounded-full bg-[#99948b]" />
+            <div className="grid grid-cols-[1fr_auto] gap-x-3">
+              <span>Programmé :</span>
+              <strong className="font-semibold text-neutral-950">
+                {monthlyExpenseCount}
+              </strong>
+
+              <span>Réappro. :</span>
+              <strong className="font-semibold text-neutral-950">
+                {formatMoney(
+                  weeklySpent
+                )}
+              </strong>
+
+              <span>Comptes :</span>
+              <strong className="font-semibold text-neutral-950">
+                {accountCount}
+              </strong>
+            </div>
           </div>
         </DashboardCard>
 
         <DashboardCard
           icon={
-            <ReceiptText className="size-[15px]" />
+            <Clock3 className="size-[15px]" />
           }
-          label="Activité"
-          value={`${monthlyExpenseCount}`}
-          subtitle="dépenses ce mois"
+          label="Couverture"
+          value={`${weeklyTransactionCount} jours`}
         >
-          <ActivityBars />
+          <div className="space-y-[13px]">
+            <CoverageBar />
+
+            <p className="text-[12px] leading-[17px] text-[#6f6b66]">
+              Obligations couvertes cette semaine
+            </p>
+          </div>
         </DashboardCard>
       </section>
 
-      {/* WEEK REVIEW */}
-      <section className="rounded-[28px] bg-white p-5">
-        <div className="flex items-center gap-2 text-[#706c66]">
-          <List className="size-[15px]" />
+      <section className="rounded-[24px] bg-white px-[17px] pb-[25px] pt-[18px] shadow-[0_1px_0_rgba(0,0,0,0.02)] lg:px-6 lg:py-6">
+        <div className="flex items-center gap-2 text-[#64605b]">
+          <CalendarDays className="size-[15px]" />
 
-          <span className="text-[10px] font-medium uppercase tracking-[0.16em]">
-            7 derniers jours
+          <span className="text-[10px] font-medium uppercase tracking-[0.18em]">
+            {weekFrom} - {weekTo}
           </span>
         </div>
 
-        <h2 className="mt-3 text-[19px] font-semibold tracking-[-0.025em]">
+        <h2 className="mt-[12px] text-[20px] font-semibold leading-[24px] tracking-[-0.01em]">
           Votre semaine en revue
         </h2>
 
-        <p className="mt-2 text-[12px] leading-5 text-[#77736d]">
+        <p className="mt-[6px] max-w-[360px] text-[12px] leading-[18px] text-[#6f6b66]">
           {weeklyTransactionCount}{" "}
           transaction
           {weeklyTransactionCount !==
           1
             ? "s"
             : ""}{" "}
-          enregistrée
-          {weeklyTransactionCount !==
-          1
-            ? "s"
-            : ""}{" "}
-          cette semaine.
+          du {weekFrom.toLowerCase()} au {weekTo.toLowerCase()}.
+          Un passage rapide sur les dépenses, les catégories et les soldes.
         </p>
 
-        <div className="mt-5 flex items-end justify-between">
-          <div>
-            <p className="text-[11px] text-[#817d77]">
-              Dépensé
-            </p>
-
-            <p className="mt-1 text-[18px] font-semibold tracking-tight">
-              {formatMoney(
-                weeklySpent
-              )}
-            </p>
-          </div>
-
-          <WeekBars />
-        </div>
+        <Link
+          href="/transactions"
+          className="mt-[14px] inline-flex text-[14px] font-medium text-[#3d7f9b]"
+        >
+          Voir plus
+        </Link>
       </section>
 
-      {/* RECENT TRANSACTIONS */}
-      <section className="rounded-[28px] bg-white p-5">
-        <div className="mb-5 flex items-center gap-2 text-[#706c66]">
+      <section className="rounded-[24px] bg-white px-[17px] pb-[24px] pt-[18px] shadow-[0_1px_0_rgba(0,0,0,0.02)] lg:px-6 lg:py-6">
+        <div className="mb-[20px] flex items-center gap-2 text-[#64605b]">
           <List className="size-[15px]" />
 
-          <span className="text-[10px] font-medium uppercase tracking-[0.16em]">
+          <span className="text-[10px] font-medium uppercase tracking-[0.18em]">
             Transactions récentes
           </span>
         </div>
@@ -274,13 +290,12 @@ export default function DashboardPage() {
               <ReceiptText className="size-5 text-neutral-300" />
 
               <p className="mt-3 text-[12px] text-[#817d77]">
-                Aucune transaction
-                pour le moment.
+                Aucune transaction pour le moment.
               </p>
             </div>
           )}
 
-        <div className="divide-y divide-[#efede9]">
+        <div className="space-y-[17px]">
           {recentTransactions.data?.data.map(
             (
               transaction
@@ -299,21 +314,21 @@ export default function DashboardPage() {
                   key={
                     transaction.id
                   }
-                  className="flex items-center justify-between gap-3 py-4 first:pt-0 last:pb-0"
+                  className="flex items-start justify-between gap-4"
                 >
-                  <div className="flex min-w-0 items-center gap-3">
-                    <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[#f1efeb]">
-                      <ReceiptText className="size-[16px]" />
+                  <div className="flex min-w-0 items-start gap-3">
+                    <div className="flex size-8 shrink-0 items-center justify-center text-neutral-950">
+                      <Utensils className="size-[22px]" strokeWidth={1.9} />
                     </div>
 
                     <div className="min-w-0">
-                      <p className="truncate text-[13px] font-medium">
+                      <p className="truncate text-[13px] font-semibold leading-[16px]">
                         {transaction.description ??
                           category?.name ??
                           "Transaction"}
                       </p>
 
-                      <p className="mt-1 truncate text-[11px] text-[#817d77]">
+                      <p className="mt-[2px] truncate text-[11px] leading-[15px] text-[#77736d]">
                         {category?.name ??
                           entry
                             ?.account
@@ -324,26 +339,11 @@ export default function DashboardPage() {
                   </div>
 
                   {entry && (
-                    <div className="shrink-0 text-right">
-                      <p className="text-[12px] font-semibold">
+                    <div className="shrink-0 pt-[1px] text-right">
+                      <p className="text-[12px] font-semibold leading-[16px]">
                         {formatMoney(
                           entry.amountMinor,
                           entry.currencyCode
-                        )}
-                      </p>
-
-                      <p className="mt-1 text-[10px] text-[#aaa69f]">
-                        {new Intl.DateTimeFormat(
-                          "fr-FR",
-                          {
-                            day: "numeric",
-                            month:
-                              "short",
-                          }
-                        ).format(
-                          new Date(
-                            transaction.occurredAt
-                          )
                         )}
                       </p>
                     </div>
@@ -355,9 +355,8 @@ export default function DashboardPage() {
         </div>
       </section>
 
-      {/* FLOATING ACTION BUTTON */}
-      <div className="pointer-events-none fixed inset-x-0 bottom-[94px] z-40">
-        <div className="mx-auto flex w-full max-w-[460px] justify-end px-5">
+      <div className="pointer-events-none fixed inset-x-0 bottom-[95px] z-40 lg:bottom-8">
+        <div className="mx-auto flex w-full max-w-[469px] justify-end px-[18px] lg:max-w-[1180px] lg:pl-[318px] lg:pr-[52px]">
           <div className="pointer-events-auto">
             <AddExpenseDialog />
           </div>
@@ -387,21 +386,21 @@ function DashboardCard({
   children,
 }: DashboardCardProps) {
   return (
-    <div className="flex min-h-[168px] flex-col rounded-[28px] bg-white p-[17px]">
-      <div className="flex items-center gap-2 text-[#67635e]">
+    <div className="flex min-h-[202px] flex-col rounded-[24px] bg-white px-[17px] pb-[17px] pt-[16px] shadow-[0_1px_0_rgba(0,0,0,0.02)] lg:min-h-[214px]">
+      <div className="flex items-center gap-[8px] text-[#64605b]">
         {icon}
 
-        <span className="text-[9px] font-medium uppercase tracking-[0.16em]">
+        <span className="text-[10px] font-medium uppercase tracking-[0.18em]">
           {label}
         </span>
       </div>
 
-      <p className="mt-3 break-words text-[21px] font-medium leading-none tracking-[-0.035em]">
+      <p className="mt-[12px] break-words text-[22px] font-medium leading-[26px] tracking-[-0.01em]">
         {value}
       </p>
 
       {subtitle && (
-        <p className="mt-2 text-[11px] leading-4 text-[#77736d]">
+        <p className="mt-[2px] text-[12px] leading-[18px] text-[#6f6b66]">
           {subtitle}
         </p>
       )}
@@ -417,68 +416,52 @@ function DashboardCard({
 
 function BalanceMiniChart() {
   return (
-    <div className="flex h-9 items-end gap-[3px]">
-      <span className="h-[13px] flex-1 rounded-sm bg-[#d9ecf5]" />
-
-      <span className="h-[16px] flex-1 rounded-sm bg-[#cae5f1]" />
-
-      <span className="h-[19px] flex-1 rounded-sm bg-[#a9d9eb]" />
-
-      <span className="h-[28px] flex-1 rounded-sm bg-[#4db7db]" />
-
-      <span className="h-[24px] flex-1 rounded-sm bg-[#79c8e3]" />
-
-      <span className="h-[20px] flex-1 rounded-sm bg-[#a8d9e8]" />
-
-      <span className="h-[18px] flex-1 rounded-sm bg-[#c8e6ef]" />
+    <div className="-mx-[17px] -mb-[17px] mt-auto h-[88px] overflow-hidden rounded-b-[24px]">
+      <svg
+        viewBox="0 0 210 88"
+        className="h-full w-full"
+        preserveAspectRatio="none"
+        aria-hidden="true"
+      >
+        <path
+          d="M0 35 C18 46 37 43 55 48 C72 53 79 50 88 66 C96 82 110 78 123 82 C138 86 129 42 148 49 C163 54 172 63 188 58 C202 53 193 11 210 20 L210 88 L0 88 Z"
+          fill="#e0f0fb"
+        />
+        <path
+          d="M0 35 C18 46 37 43 55 48 C72 53 79 50 88 66 C96 82 110 78 123 82 C138 86 129 42 148 49 C163 54 172 63 188 58 C202 53 193 11 210 20"
+          fill="none"
+          stroke="#1681b5"
+          strokeLinecap="round"
+          strokeWidth="2.4"
+        />
+      </svg>
     </div>
   );
 }
 
-function ActivityBars() {
+function CoverageBar() {
   return (
-    <div className="flex h-8 items-end gap-1">
-      <span className="h-3 flex-1 rounded-full bg-[#dedbd5]" />
-      <span className="h-5 flex-1 rounded-full bg-[#d4d0ca]" />
-      <span className="h-4 flex-1 rounded-full bg-[#dedbd5]" />
-      <span className="h-7 flex-1 rounded-full bg-neutral-900" />
-      <span className="h-5 flex-1 rounded-full bg-[#cbc7c0]" />
-      <span className="h-6 flex-1 rounded-full bg-[#aaa69e]" />
+    <div className="relative h-[13px]">
+      <div className="absolute inset-x-0 top-1/2 h-[6px] -translate-y-1/2 overflow-hidden rounded-full bg-[#efede9]">
+        <div className="h-full rounded-full bg-[linear-gradient(90deg,#f14a38_0%,#ffc916_48%,#89d548_72%,#2dc46b_100%)]" />
+      </div>
+
+      <span className="absolute left-[54%] top-1/2 size-[13px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#e6ea50] shadow-[0_0_0_2px_rgba(255,255,255,0.55)]" />
     </div>
   );
 }
 
-function WeekBars() {
-  const bars = [
-    17,
-    25,
-    14,
-    32,
-    27,
-    38,
-    23,
-  ];
-
-  return (
-    <div className="flex h-10 items-end gap-1">
-      {bars.map(
-        (
-          height,
-          index
-        ) => (
-          <span
-            key={index}
-            style={{
-              height,
-            }}
-            className={`w-[7px] rounded-full ${
-              index === 5
-                ? "bg-neutral-900"
-                : "bg-[#d7d4ce]"
-            }`}
-          />
-        )
-      )}
-    </div>
-  );
+function formatShortDate(value: string) {
+  return new Intl.DateTimeFormat(
+    "fr-FR",
+    {
+      day: "numeric",
+      month: "short",
+    }
+  )
+    .format(
+      new Date(value)
+    )
+    .replace(".", "")
+    .toUpperCase();
 }
