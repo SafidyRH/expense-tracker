@@ -6,6 +6,9 @@ import {
 } from "react";
 
 import {
+  ArrowDownLeft,
+  ArrowRightLeft,
+  ArrowUpRight,
   Plus,
 } from "lucide-react";
 
@@ -53,15 +56,54 @@ import {
 
 import {
   useCreateExpense,
+  useCreateIncome,
+  useCreateTransfer,
 } from "../transaction.queries";
 
-export function AddExpenseDialog() {
+type TransactionMode =
+  | "EXPENSE"
+  | "INCOME"
+  | "TRANSFER";
+
+const modes: Array<{
+  value: TransactionMode;
+  label: string;
+  icon: React.ReactNode;
+}> = [
+  {
+    value: "EXPENSE",
+    label: "Dépense",
+    icon: <ArrowUpRight className="size-4" />,
+  },
+  {
+    value: "INCOME",
+    label: "Revenu",
+    icon: <ArrowDownLeft className="size-4" />,
+  },
+  {
+    value: "TRANSFER",
+    label: "Transfert",
+    icon: <ArrowRightLeft className="size-4" />,
+  },
+];
+
+export function AddTransactionDialog() {
   const [open, setOpen] =
     useState(false);
+
+  const [mode, setMode] =
+    useState<TransactionMode>(
+      "EXPENSE"
+    );
 
   const [
     accountId,
     setAccountId,
+  ] = useState("");
+
+  const [
+    toAccountId,
+    setToAccountId,
   ] = useState("");
 
   const [
@@ -72,6 +114,11 @@ export function AddExpenseDialog() {
   const [
     amount,
     setAmount,
+  ] = useState("");
+
+  const [
+    occurredAt,
+    setOccurredAt,
   ] = useState("");
 
   const [
@@ -94,21 +141,55 @@ export function AddExpenseDialog() {
   const accounts =
     useAccounts();
 
-  const categories =
+  const expenseCategories =
     useCategories(
       "EXPENSE"
+    );
+
+  const incomeCategories =
+    useCategories(
+      "INCOME"
     );
 
   const createExpense =
     useCreateExpense();
 
+  const createIncome =
+    useCreateIncome();
+
+  const createTransfer =
+    useCreateTransfer();
+
+  const categories =
+    mode === "INCOME"
+      ? incomeCategories
+      : expenseCategories;
+
+  const pending =
+    createExpense.isPending ||
+    createIncome.isPending ||
+    createTransfer.isPending;
+
   function resetForm() {
+    setMode("EXPENSE");
     setAccountId("");
+    setToAccountId("");
     setCategoryId("");
     setAmount("");
+    setOccurredAt("");
     setDescription("");
     setNote("");
     setError(null);
+  }
+
+  function getOccurredAtValue() {
+    if (!occurredAt) {
+      return undefined;
+    }
+
+    return new Date(
+      `${occurredAt}T12:00:00`
+    ).toISOString();
   }
 
   async function handleSubmit(
@@ -117,22 +198,6 @@ export function AddExpenseDialog() {
     event.preventDefault();
 
     setError(null);
-
-    if (!accountId) {
-      setError(
-        "Veuillez sélectionner un compte."
-      );
-
-      return;
-    }
-
-    if (!categoryId) {
-      setError(
-        "Veuillez sélectionner une catégorie."
-      );
-
-      return;
-    }
 
     const normalizedAmount =
       amount
@@ -157,26 +222,99 @@ export function AddExpenseDialog() {
       return;
     }
 
+    if (!accountId) {
+      setError(
+        mode === "TRANSFER"
+          ? "Veuillez sélectionner le compte source."
+          : "Veuillez sélectionner un compte."
+      );
+
+      return;
+    }
+
+    if (
+      mode === "TRANSFER" &&
+      !toAccountId
+    ) {
+      setError(
+        "Veuillez sélectionner le compte destinataire."
+      );
+
+      return;
+    }
+
+    if (
+      mode === "TRANSFER" &&
+      accountId === toAccountId
+    ) {
+      setError(
+        "Le compte source et le compte destinataire doivent être différents."
+      );
+
+      return;
+    }
+
+    if (
+      mode !== "TRANSFER" &&
+      !categoryId
+    ) {
+      setError(
+        "Veuillez sélectionner une catégorie."
+      );
+
+      return;
+    }
+
+    const baseInput = {
+      amountMinor:
+        normalizedAmount,
+
+      description:
+        description.trim() ||
+        undefined,
+
+      note:
+        note.trim() ||
+        undefined,
+
+      occurredAt:
+        getOccurredAtValue(),
+
+      clientGeneratedId:
+        crypto.randomUUID(),
+    };
+
     try {
-      await createExpense.mutateAsync({
-        accountId,
+      if (mode === "EXPENSE") {
+        await createExpense.mutateAsync({
+          ...baseInput,
 
-        categoryId,
+          accountId,
 
-        amountMinor:
-          normalizedAmount,
+          categoryId,
+        });
+      }
 
-        description:
-          description.trim() ||
-          undefined,
+      if (mode === "INCOME") {
+        await createIncome.mutateAsync({
+          ...baseInput,
 
-        note:
-          note.trim() ||
-          undefined,
+          accountId,
 
-        clientGeneratedId:
-          crypto.randomUUID(),
-      });
+          categoryId,
+        });
+      }
+
+      if (mode === "TRANSFER") {
+        await createTransfer.mutateAsync({
+          ...baseInput,
+
+          fromAccountId:
+            accountId,
+
+          toAccountId,
+        });
+      }
 
       resetForm();
 
@@ -185,7 +323,7 @@ export function AddExpenseDialog() {
       setError(
         error instanceof Error
           ? error.message
-          : "Impossible d'enregistrer la dépense."
+          : "Impossible d'enregistrer la transaction."
       );
     }
   }
@@ -211,16 +349,14 @@ export function AddExpenseDialog() {
         Ajouter une transaction
       </DialogTrigger>
 
-      <DialogContent className="w-[calc(100%-32px)] max-w-[420px] rounded-[28px] border-0 p-5">
-        <DialogHeader>
+      <DialogContent className="flex max-h-[calc(100dvh-24px)] w-[calc(100%-32px)] max-w-[430px] flex-col gap-0 overflow-hidden rounded-[28px] border-0 p-0 sm:max-h-[calc(100vh-48px)]">
+        <DialogHeader className="shrink-0 px-5 pb-4 pt-5">
           <DialogTitle>
-            Nouvelle dépense
+            Ajouter une transaction
           </DialogTitle>
 
           <DialogDescription>
-            Enregistrez une dépense
-            effectuée depuis l&apos;un de
-            vos comptes.
+            Enregistrez une dépense, un revenu ou un transfert entre comptes.
           </DialogDescription>
         </DialogHeader>
 
@@ -228,48 +364,54 @@ export function AddExpenseDialog() {
           onSubmit={
             handleSubmit
           }
-          className="space-y-5"
+          className="flex min-h-0 flex-1 flex-col"
         >
-          <div className="space-y-2">
-            <Label>
-              Montant
-            </Label>
-
-            <div className="relative">
-              <Input
-                type="number"
-                min="1"
-                step="1"
-                placeholder="25000"
-                value={amount}
-                onChange={(
-                  event
-                ) =>
-                  setAmount(
-                    event.target
-                      .value
-                  )
-                }
-                className="pr-12"
-                required
-              />
-
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
-                Ar
-              </span>
-            </div>
+          <div className="min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain px-5 pb-5">
+          <div className="grid grid-cols-3 gap-2 rounded-[22px] bg-[#f1efeb] p-1">
+            {modes.map(
+              (item) => (
+                <button
+                  key={
+                    item.value
+                  }
+                  type="button"
+                  onClick={() => {
+                    setMode(
+                      item.value
+                    );
+                    setCategoryId("");
+                    setError(null);
+                  }}
+                  className={`flex min-h-11 items-center justify-center gap-1.5 rounded-[18px] text-[12px] font-medium transition-colors ${
+                    mode === item.value
+                      ? "bg-white text-neutral-950 shadow-[0_4px_12px_rgba(0,0,0,0.06)]"
+                      : "text-[#68645f]"
+                  }`}
+                >
+                  {item.icon}
+                  <span>
+                    {item.label}
+                  </span>
+                </button>
+              )
+            )}
           </div>
 
           <div className="space-y-2">
             <Label>
-              Compte
+              {mode ===
+              "TRANSFER"
+                ? "Compte source"
+                : "Compte"}
             </Label>
 
             <Select
               value={accountId}
-              onValueChange={
-                ()=>setAccountId
-              }
+              onValueChange={(value) => {
+                if (value) {
+                  setAccountId(value);
+                }
+              }}
             >
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="Sélectionner un compte" />
@@ -298,44 +440,138 @@ export function AddExpenseDialog() {
             </Select>
           </div>
 
+          {mode ===
+            "TRANSFER" && (
+            <div className="space-y-2">
+              <Label>
+                Compte destinataire
+              </Label>
+
+              <Select
+                value={toAccountId}
+                onValueChange={(value) => {
+                  if (value) {
+                    setToAccountId(value);
+                  }
+                }}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Sélectionner un compte" />
+                </SelectTrigger>
+
+                <SelectContent>
+                  {accounts.data?.data.map(
+                    (
+                      account
+                    ) => (
+                      <SelectItem
+                        key={
+                          account.id
+                        }
+                        value={
+                          account.id
+                        }
+                      >
+                        {
+                          account.name
+                        }
+                      </SelectItem>
+                    )
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {mode !==
+            "TRANSFER" && (
+            <div className="space-y-2">
+              <Label>
+                Catégorie
+              </Label>
+
+              <Select
+                value={
+                  categoryId
+                }
+                onValueChange={(value) => {
+                  if (value) {
+                    setCategoryId(value);
+                  }
+                }}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Sélectionner une catégorie" />
+                </SelectTrigger>
+
+                <SelectContent>
+                  {categories.data?.data.map(
+                    (
+                      category
+                    ) => (
+                      <SelectItem
+                        key={
+                          category.id
+                        }
+                        value={
+                          category.id
+                        }
+                      >
+                        {
+                          category.name
+                        }
+                      </SelectItem>
+                    )
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
           <div className="space-y-2">
             <Label>
-              Catégorie
+              Montant
             </Label>
 
-            <Select
-              value={
-                categoryId
-              }
-              onValueChange={ ()=>
-                setCategoryId
-              }
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Sélectionner une catégorie" />
-              </SelectTrigger>
-
-              <SelectContent>
-                {categories.data?.data.map(
-                  (
-                    category
-                  ) => (
-                    <SelectItem
-                      key={
-                        category.id
-                      }
-                      value={
-                        category.id
-                      }
-                    >
-                      {
-                        category.name
-                      }
-                    </SelectItem>
+            <div className="relative">
+              <Input
+                type="number"
+                min="1"
+                step="1"
+                placeholder="2500000"
+                value={amount}
+                onChange={(
+                  event
+                ) =>
+                  setAmount(
+                    event.target
+                      .value
                   )
-                )}
-              </SelectContent>
-            </Select>
+                }
+                className="pr-12"
+                required
+              />
+
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
+                Ar
+              </span>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label>
+              Date
+            </Label>
+
+            <Input
+              type="date"
+              value={occurredAt}
+              onChange={(event) =>
+                setOccurredAt(
+                  event.target.value
+                )
+              }
+            />
           </div>
 
           <div className="space-y-2">
@@ -344,7 +580,14 @@ export function AddExpenseDialog() {
             </Label>
 
             <Input
-              placeholder="Ex : Déjeuner"
+              placeholder={
+                mode === "INCOME"
+                  ? "Ex : Salaire"
+                  : mode ===
+                      "TRANSFER"
+                    ? "Ex : Recharge MVola"
+                    : "Ex : Dîner"
+              }
               value={
                 description
               }
@@ -383,8 +626,9 @@ export function AddExpenseDialog() {
               {error}
             </p>
           )}
+          </div>
 
-          <DialogFooter>
+          <DialogFooter className="mx-0 mb-0 shrink-0 rounded-none border-t border-[#efede9] bg-white px-5 py-4 sm:justify-end">
             <Button
               type="button"
               variant="outline"
@@ -399,11 +643,11 @@ export function AddExpenseDialog() {
             <Button
               type="submit"
               disabled={
-                createExpense.isPending
+                pending
               }
               className="rounded-full bg-neutral-950"
             >
-              {createExpense.isPending
+              {pending
                 ? "Enregistrement..."
                 : "Enregistrer"}
             </Button>
@@ -413,3 +657,6 @@ export function AddExpenseDialog() {
     </Dialog>
   );
 }
+
+export const AddExpenseDialog =
+  AddTransactionDialog;
