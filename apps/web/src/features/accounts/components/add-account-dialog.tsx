@@ -1,6 +1,9 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import {
+  FormEvent,
+  useState,
+} from "react";
 
 import { Plus } from "lucide-react";
 
@@ -28,9 +31,17 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-import { useCreateAccount } from "../account.queries";
+import { cn } from "@/lib/utils";
 
-import type { FinancialAccountType } from "../account.types";
+import {
+  useCreateAccount,
+  useUpdateAccount,
+} from "../account.queries";
+
+import type {
+  FinancialAccount,
+  FinancialAccountType,
+} from "../account.types";
 
 const accountTypes: Array<{
   value: FinancialAccountType;
@@ -62,63 +73,201 @@ const accountTypes: Array<{
   },
 ];
 
-export function AddAccountDialog() {
-  const [open, setOpen] = useState(false);
+interface AddAccountDialogProps {
+  triggerClassName?: string;
+}
 
-  const [name, setName] = useState("");
+interface EditAccountDialogProps {
+  account: FinancialAccount;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}
 
-  const [type, setType] = useState<FinancialAccountType>("CASH");
+export function AddAccountDialog({
+  triggerClassName,
+}: AddAccountDialogProps) {
+  const [open, setOpen] =
+    useState(false);
 
-  const [institutionName, setInstitutionName] = useState("");
+  return (
+    <AccountFormDialog
+      key={open ? "add-open" : "add-closed"}
+      open={open}
+      onOpenChange={setOpen}
+      trigger={
+        <DialogTrigger
+          render={
+            <Button
+              type="button"
+              className={cn(
+                "h-12 rounded-full bg-neutral-950 px-5 text-[12px] font-medium text-white shadow-[0_8px_24px_rgba(0,0,0,0.25)] hover:bg-neutral-800",
+                triggerClassName
+              )}
+            />
+          }
+        >
+          <Plus className="mr-2 size-[16px]" />
+          Ajouter un compte
+        </DialogTrigger>
+      }
+    />
+  );
+}
 
-  const [initialBalance, setInitialBalance] = useState("0");
+export function EditAccountDialog({
+  account,
+  open,
+  onOpenChange,
+}: EditAccountDialogProps) {
+  return (
+    <AccountFormDialog
+      key={`${account.id}-${account.updatedAt}-${open ? "open" : "closed"}`}
+      account={account}
+      open={open}
+      onOpenChange={onOpenChange}
+    />
+  );
+}
 
-  const [error, setError] = useState<string | null>(null);
+interface AccountFormDialogProps {
+  account?: FinancialAccount;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  trigger?: React.ReactNode;
+}
 
-  const createAccount = useCreateAccount();
+function AccountFormDialog({
+  account,
+  open,
+  onOpenChange,
+  trigger,
+}: AccountFormDialogProps) {
+  const isEditing =
+    Boolean(account);
+
+  const [name, setName] =
+    useState(
+      account?.name ?? ""
+    );
+
+  const [type, setType] =
+    useState<FinancialAccountType>(
+      account?.type ?? "CASH"
+    );
+
+  const [
+    institutionName,
+    setInstitutionName,
+  ] = useState(
+    account?.institutionName ?? ""
+  );
+
+  const [
+    initialBalance,
+    setInitialBalance,
+  ] = useState(
+    account?.initialBalanceMinor ?? "0"
+  );
+
+  const [error, setError] =
+    useState<string | null>(
+      null
+    );
+
+  const createAccount =
+    useCreateAccount();
+
+  const updateAccount =
+    useUpdateAccount();
 
   function resetForm() {
-    setName("");
-    setType("CASH");
-    setInstitutionName("");
-    setInitialBalance("0");
+    setName(
+      account?.name ?? ""
+    );
+    setType(
+      account?.type ?? "CASH"
+    );
+    setInstitutionName(
+      account?.institutionName ?? ""
+    );
+    setInitialBalance(
+      account?.initialBalanceMinor ?? "0"
+    );
     setError(null);
   }
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(
+    event: FormEvent<HTMLFormElement>
+  ) {
     event.preventDefault();
 
     setError(null);
 
-    const normalizedBalance = initialBalance.replace(/\s/g, "").trim();
+    if (!name.trim()) {
+      setError(
+        "Le nom du compte est obligatoire."
+      );
 
-    if (!/^-?\d+$/.test(normalizedBalance)) {
-      setError("Le solde initial doit être un nombre entier.");
+      return;
+    }
+
+    const normalizedBalance =
+      initialBalance
+        .replace(/\s/g, "")
+        .trim();
+
+    if (
+      !isEditing &&
+      !/^-?\d+$/.test(
+        normalizedBalance
+      )
+    ) {
+      setError(
+        "Le solde initial doit être un nombre entier."
+      );
 
       return;
     }
 
     try {
-      await createAccount.mutateAsync({
-        name: name.trim(),
+      if (account) {
+        await updateAccount.mutateAsync({
+          id: account.id,
+          input: {
+            name: name.trim(),
+            type,
+            institutionName:
+              institutionName.trim() ||
+              null,
+          },
+        });
+      } else {
+        await createAccount.mutateAsync({
+          name: name.trim(),
 
-        type,
+          type,
 
-        institutionName: institutionName.trim() || null,
+          institutionName:
+            institutionName.trim() ||
+            null,
 
-        currencyCode: "MGA",
+          currencyCode: "MGA",
 
-        initialBalanceMinor: normalizedBalance,
-      });
+          initialBalanceMinor:
+            normalizedBalance,
+        });
+      }
 
       resetForm();
 
-      setOpen(false);
+      onOpenChange(false);
     } catch (error) {
       setError(
         error instanceof Error
           ? error.message
-          : "Impossible de créer le compte.",
+          : isEditing
+            ? "Impossible de modifier le compte."
+            : "Impossible de créer le compte."
       );
     }
   }
@@ -129,120 +278,184 @@ export function AddAccountDialog() {
     type === "E_WALLET" ||
     type === "CREDIT_CARD";
 
+  const pending =
+    createAccount.isPending ||
+    updateAccount.isPending;
+
   return (
     <Dialog
       open={open}
       onOpenChange={(value) => {
-        setOpen(value);
+        onOpenChange(value);
 
         if (!value) {
           resetForm();
         }
       }}
     >
-      <DialogTrigger>
-        <Button>
-          <Plus className="mr-2 size-4" />
-          Ajouter un compte
-        </Button>
-      </DialogTrigger>
+      {trigger}
 
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="w-[calc(100%-32px)] max-w-[420px] rounded-[28px] border-0 p-5">
         <DialogHeader>
-          <DialogTitle>Nouveau compte</DialogTitle>
+          <DialogTitle>
+            {isEditing
+              ? "Modifier le compte"
+              : "Nouveau compte"}
+          </DialogTitle>
 
           <DialogDescription>
-            Ajoutez un portefeuille, un compte bancaire ou un compte Mobile
-            Money.
+            {isEditing
+              ? "Mettez à jour le nom, le type ou l'institution du compte."
+              : "Ajoutez un portefeuille, une banque ou un compte Mobile Money."}
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-5">
+        <form
+          onSubmit={handleSubmit}
+          className="space-y-5"
+        >
           <div className="space-y-2">
-            <Label htmlFor="account-name">Nom du compte</Label>
+            <Label htmlFor="account-name">
+              Nom du compte
+            </Label>
 
             <Input
               id="account-name"
               placeholder="Ex : MVola"
               value={name}
-              onChange={(event) => setName(event.target.value)}
+              onChange={(event) =>
+                setName(
+                  event.target.value
+                )
+              }
               required
             />
           </div>
 
           <div className="space-y-2">
-            <Label>Type de compte</Label>
+            <Label>
+              Type de compte
+            </Label>
 
             <Select
               value={type}
-              onValueChange={(value) => setType(value as FinancialAccountType)}
+              onValueChange={(value) =>
+                setType(
+                  value as FinancialAccountType
+                )
+              }
             >
-              <SelectTrigger>
+              <SelectTrigger className="w-full">
                 <SelectValue />
               </SelectTrigger>
 
               <SelectContent>
-                {accountTypes.map((accountType) => (
-                  <SelectItem key={accountType.value} value={accountType.value}>
-                    {accountType.label}
-                  </SelectItem>
-                ))}
+                {accountTypes.map(
+                  (accountType) => (
+                    <SelectItem
+                      key={
+                        accountType.value
+                      }
+                      value={
+                        accountType.value
+                      }
+                    >
+                      {
+                        accountType.label
+                      }
+                    </SelectItem>
+                  )
+                )}
               </SelectContent>
             </Select>
           </div>
 
           {showInstitution && (
             <div className="space-y-2">
-              <Label htmlFor="institution">Institution</Label>
+              <Label htmlFor="institution">
+                Institution
+              </Label>
 
               <Input
                 id="institution"
                 placeholder={
-                  type === "MOBILE_MONEY" ? "Ex : Telma" : "Ex : BNI"
+                  type ===
+                  "MOBILE_MONEY"
+                    ? "Ex : Telma"
+                    : "Ex : BNI"
                 }
                 value={institutionName}
-                onChange={(event) => setInstitutionName(event.target.value)}
+                onChange={(event) =>
+                  setInstitutionName(
+                    event.target.value
+                  )
+                }
               />
             </div>
           )}
 
-          <div className="space-y-2">
-            <Label htmlFor="initial-balance">Solde actuel</Label>
+          {!isEditing && (
+            <div className="space-y-2">
+              <Label htmlFor="initial-balance">
+                Solde actuel
+              </Label>
 
-            <div className="relative">
-              <Input
-                id="initial-balance"
-                type="number"
-                step="1"
-                value={initialBalance}
-                onChange={(event) => setInitialBalance(event.target.value)}
-                className="pr-12"
-                required
-              />
+              <div className="relative">
+                <Input
+                  id="initial-balance"
+                  type="number"
+                  step="1"
+                  value={
+                    initialBalance
+                  }
+                  onChange={(event) =>
+                    setInitialBalance(
+                      event.target.value
+                    )
+                  }
+                  className="pr-12"
+                  required
+                />
 
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
-                Ar
-              </span>
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+                  Ar
+                </span>
+              </div>
+
+              <p className="text-xs text-muted-foreground">
+                Indiquez le montant actuellement disponible sur ce compte.
+              </p>
             </div>
+          )}
 
-            <p className="text-xs text-muted-foreground">
-              Indiquez le montant actuellement disponible sur ce compte.
+          {error && (
+            <p className="text-sm text-destructive">
+              {error}
             </p>
-          </div>
-
-          {error && <p className="text-sm text-destructive">{error}</p>}
+          )}
 
           <DialogFooter>
             <Button
               type="button"
               variant="outline"
-              onClick={() => setOpen(false)}
+              onClick={() =>
+                onOpenChange(false)
+              }
+              className="rounded-full"
             >
               Annuler
             </Button>
 
-            <Button type="submit" disabled={createAccount.isPending}>
-              {createAccount.isPending ? "Création..." : "Créer le compte"}
+            <Button
+              type="submit"
+              disabled={pending}
+              className="rounded-full bg-neutral-950"
+            >
+              {pending
+                ? "Enregistrement..."
+                : isEditing
+                  ? "Enregistrer"
+                  : "Créer le compte"}
             </Button>
           </DialogFooter>
         </form>
