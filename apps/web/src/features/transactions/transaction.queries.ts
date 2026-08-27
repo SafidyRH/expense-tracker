@@ -1,4 +1,5 @@
 import {
+  useInfiniteQuery,
   useMutation,
   useQuery,
   useQueryClient,
@@ -6,6 +7,8 @@ import {
 
 import {
   createExpense,
+  createIncome,
+  createTransfer,
   getTransactions,
 } from "./transaction.api";
 
@@ -27,6 +30,35 @@ export function useTransactions(
   });
 }
 
+export function useInfiniteTransactions(
+  query: TransactionQuery = {}
+) {
+  return useInfiniteQuery({
+    queryKey: [
+      "transactions",
+      "infinite",
+      query,
+    ],
+
+    initialPageParam:
+      undefined as string | undefined,
+
+    queryFn: ({
+      pageParam,
+    }) =>
+      getTransactions({
+        ...query,
+        cursor: pageParam,
+      }),
+
+    getNextPageParam: (
+      lastPage
+    ) =>
+      lastPage.pagination.nextCursor ??
+      undefined,
+  });
+}
+
 export function useCreateExpense() {
   const queryClient =
     useQueryClient();
@@ -34,6 +66,58 @@ export function useCreateExpense() {
   return useMutation({
     mutationFn:
       createExpense,
+
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: [
+            "transactions",
+          ],
+        }),
+
+        queryClient.invalidateQueries({
+          queryKey: [
+            "accounts",
+          ],
+        }),
+      ]);
+    },
+  });
+}
+
+export function useCreateIncome() {
+  const queryClient =
+    useQueryClient();
+
+  return useMutation({
+    mutationFn:
+      createIncome,
+
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: [
+            "transactions",
+          ],
+        }),
+
+        queryClient.invalidateQueries({
+          queryKey: [
+            "accounts",
+          ],
+        }),
+      ]);
+    },
+  });
+}
+
+export function useCreateTransfer() {
+  const queryClient =
+    useQueryClient();
+
+  return useMutation({
+    mutationFn:
+      createTransfer,
 
     onSuccess: async () => {
       await Promise.all([

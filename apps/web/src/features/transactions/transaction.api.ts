@@ -3,6 +3,10 @@ import { apiFetch } from "@/lib/api-client";
 import type {
   CreateExpenseInput,
   CreateExpenseResponse,
+  CreateIncomeInput,
+  CreateIncomeResponse,
+  CreateTransferInput,
+  CreateTransferResponse,
   TransactionsResponse,
 } from "./transaction.types";
 
@@ -92,6 +96,32 @@ export function createExpense(
 ) {
   return apiFetch<CreateExpenseResponse>(
     "/api/transactions/expenses",
+    {
+      method: "POST",
+
+      body: JSON.stringify(input),
+    }
+  );
+}
+
+export function createIncome(
+  input: CreateIncomeInput
+) {
+  return apiFetch<CreateIncomeResponse>(
+    "/api/transactions/incomes",
+    {
+      method: "POST",
+
+      body: JSON.stringify(input),
+    }
+  );
+}
+
+export function createTransfer(
+  input: CreateTransferInput
+) {
+  return apiFetch<CreateTransferResponse>(
+    "/api/transactions/transfers",
     {
       method: "POST",
 
