@@ -6,6 +6,7 @@ import type {
   AccountResponse,
   AccountsResponse,
   CreateFinancialAccountInput,
+  UpdateFinancialAccountInput,
 } from "./account.types";
 
 export function getAccounts() {
@@ -23,6 +24,34 @@ export function createAccount(
       method: "POST",
 
       body: JSON.stringify(input),
+    }
+  );
+}
+
+export function updateAccount({
+  id,
+  input,
+}: {
+  id: string;
+  input: UpdateFinancialAccountInput;
+}) {
+  return apiFetch<AccountResponse>(
+    `/api/accounts/${id}`,
+    {
+      method: "PATCH",
+
+      body: JSON.stringify(input),
+    }
+  );
+}
+
+export function archiveAccount(
+  id: string
+) {
+  return apiFetch<void>(
+    `/api/accounts/${id}`,
+    {
+      method: "DELETE",
     }
   );
 }

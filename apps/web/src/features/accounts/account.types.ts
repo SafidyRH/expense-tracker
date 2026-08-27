@@ -49,3 +49,11 @@ export interface CreateFinancialAccountInput {
 
   initialBalanceMinor?: string;
 }
+
+export interface UpdateFinancialAccountInput {
+  name?: string;
+
+  type?: FinancialAccountType;
+
+  institutionName?: string | null;
+}
