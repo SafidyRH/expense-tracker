@@ -17,6 +17,12 @@ import {
 import {
   CreateExpense,
 } from "../application/create-expense.js";
+import {
+  CreateIncome,
+} from "../application/create-income.js";
+import {
+  CreateTransfer,
+} from "../application/create-transfer.js";
 
 import {
   PrismaTransactionRepository,
@@ -24,10 +30,14 @@ import {
 
 import {
   createExpenseSchema,
+  createIncomeSchema,
+  createTransferSchema,
 } from "./transaction.schemas.js";
 
 import {
   toExpenseDto,
+  toIncomeDto,
+  toTransferDto,
 } from "./transaction.mapper.js";
 
 import {
@@ -52,6 +62,12 @@ const repository =
 
 const createExpense =
   new CreateExpense(repository);
+
+const createIncome =
+  new CreateIncome(repository);
+
+const createTransfer =
+  new CreateTransfer(repository);
 
   const listTransactions =
   new ListTransactions(
@@ -168,6 +184,258 @@ transactionRoutes.post(
         data:
           toExpenseDto(
             result.expense
+          ),
+
+        meta: {
+          duplicated:
+            result.duplicated,
+        },
+      },
+
+      result.duplicated
+        ? 200
+        : 201
+    );
+  }
+);
+
+transactionRoutes.post(
+  "/incomes",
+
+  zValidator(
+    "json",
+    createIncomeSchema
+  ),
+
+  async (c) => {
+    const session =
+      c.get("session");
+
+    const input =
+      c.req.valid("json");
+
+    const result =
+      await createIncome.execute({
+        userId:
+          session!.user.id,
+
+        accountId:
+          input.accountId,
+
+        categoryId:
+          input.categoryId,
+
+        amountMinor:
+          BigInt(
+            input.amountMinor
+          ),
+
+        description:
+          input.description,
+
+        note:
+          input.note,
+
+        occurredAt:
+          input.occurredAt
+            ? new Date(
+                input.occurredAt
+              )
+            : new Date(),
+
+        clientGeneratedId:
+          input.clientGeneratedId ??
+          randomUUID(),
+      });
+
+    if (!result.success) {
+      if (
+        result.error ===
+        "ACCOUNT_NOT_FOUND"
+      ) {
+        return c.json(
+          {
+            error: {
+              code:
+                "ACCOUNT_NOT_FOUND",
+
+              message:
+                "Financial account not found",
+            },
+          },
+          404
+        );
+      }
+
+      if (
+        result.error ===
+        "CATEGORY_NOT_FOUND"
+      ) {
+        return c.json(
+          {
+            error: {
+              code:
+                "CATEGORY_NOT_FOUND",
+
+              message:
+                "Income category not found",
+            },
+          },
+          404
+        );
+      }
+
+      return c.json(
+        {
+          error: {
+            code:
+              "UNKNOWN_ERROR",
+          },
+        },
+        500
+      );
+    }
+
+    return c.json(
+      {
+        data:
+          toIncomeDto(
+            result.income
+          ),
+
+        meta: {
+          duplicated:
+            result.duplicated,
+        },
+      },
+
+      result.duplicated
+        ? 200
+        : 201
+    );
+  }
+);
+
+transactionRoutes.post(
+  "/transfers",
+
+  zValidator(
+    "json",
+    createTransferSchema
+  ),
+
+  async (c) => {
+    const session =
+      c.get("session");
+
+    const input =
+      c.req.valid("json");
+
+    const result =
+      await createTransfer.execute({
+        userId:
+          session!.user.id,
+
+        fromAccountId:
+          input.fromAccountId,
+
+        toAccountId:
+          input.toAccountId,
+
+        amountMinor:
+          BigInt(
+            input.amountMinor
+          ),
+
+        description:
+          input.description,
+
+        note:
+          input.note,
+
+        occurredAt:
+          input.occurredAt
+            ? new Date(
+                input.occurredAt
+              )
+            : new Date(),
+
+        clientGeneratedId:
+          input.clientGeneratedId ??
+          randomUUID(),
+      });
+
+    if (!result.success) {
+      if (
+        result.error ===
+        "ACCOUNT_NOT_FOUND"
+      ) {
+        return c.json(
+          {
+            error: {
+              code:
+                "ACCOUNT_NOT_FOUND",
+
+              message:
+                "Financial account not found",
+            },
+          },
+          404
+        );
+      }
+
+      if (
+        result.error ===
+        "SAME_ACCOUNT"
+      ) {
+        return c.json(
+          {
+            error: {
+              code:
+                "SAME_ACCOUNT",
+
+              message:
+                "Transfer accounts must be different",
+            },
+          },
+          400
+        );
+      }
+
+      if (
+        result.error ===
+        "CURRENCY_MISMATCH"
+      ) {
+        return c.json(
+          {
+            error: {
+              code:
+                "CURRENCY_MISMATCH",
+
+              message:
+                "Transfer accounts must use the same currency",
+            },
+          },
+          400
+        );
+      }
+
+      return c.json(
+        {
+          error: {
+            code:
+              "UNKNOWN_ERROR",
+          },
+        },
+        500
+      );
+    }
+
+    return c.json(
+      {
+        data:
+          toTransferDto(
+            result.transfer
           ),
 
         meta: {

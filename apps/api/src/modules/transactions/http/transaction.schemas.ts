@@ -53,6 +53,94 @@ export const createExpenseSchema =
       .optional(),
   });
 
+export const createIncomeSchema =
+  z.object({
+    accountId: z.string().uuid(),
+
+    categoryId: z.string().uuid(),
+
+    amountMinor:
+      positiveAmountSchema,
+
+    description: z
+      .string()
+      .trim()
+      .max(255)
+      .nullable()
+      .optional(),
+
+    note: z
+      .string()
+      .trim()
+      .max(2000)
+      .nullable()
+      .optional(),
+
+    occurredAt: z
+      .string()
+      .datetime({
+        offset: true,
+      })
+      .optional(),
+
+    clientGeneratedId: z
+      .string()
+      .uuid()
+      .optional(),
+  });
+
+export const createTransferSchema =
+  z
+    .object({
+      fromAccountId:
+        z.string().uuid(),
+
+      toAccountId:
+        z.string().uuid(),
+
+      amountMinor:
+        positiveAmountSchema,
+
+      description: z
+        .string()
+        .trim()
+        .max(255)
+        .nullable()
+        .optional(),
+
+      note: z
+        .string()
+        .trim()
+        .max(2000)
+        .nullable()
+        .optional(),
+
+      occurredAt: z
+        .string()
+        .datetime({
+          offset: true,
+        })
+        .optional(),
+
+      clientGeneratedId: z
+        .string()
+        .uuid()
+        .optional(),
+    })
+    .refine(
+      (value) =>
+        value.fromAccountId !==
+        value.toAccountId,
+      {
+        path: [
+          "toAccountId",
+        ],
+
+        message:
+          "Transfer accounts must be different",
+      }
+    );
+
 export const transactionHistoryQuerySchema =
   z
     .object({
