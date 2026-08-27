@@ -13,6 +13,9 @@ import {
   categoryRoutes,
 } from "./modules/categories/index.js";
 import {
+  budgetRoutes,
+} from "./modules/budgets/index.js";
+import {
   transactionRoutes,
 } from "./modules/transactions/index.js";
 
@@ -86,6 +89,10 @@ app.route(
 app.route(
   "/api/categories",
   categoryRoutes
+);
+app.route(
+  "/api/budgets",
+  budgetRoutes
 );
 app.route(
   "/api/transactions",
