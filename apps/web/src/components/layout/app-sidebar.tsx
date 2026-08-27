@@ -26,10 +26,6 @@ export function AppSidebar() {
 
   return (
     <aside className="hidden w-[286px] shrink-0 px-5 py-8 lg:flex lg:min-h-screen lg:flex-col">
-      {/* <div className="mb-10 flex size-11 items-center justify-center rounded-full bg-white shadow-[0_8px_22px_rgba(0,0,0,0.08)]">
-        <span className="text-[17px] font-semibold">ET</span>
-      </div> */}
-
       <nav className="flex-1 overflow-y-auto pr-1">
         {navigationGroups.map((group) => (
           <div key={group.label} className="mb-6">
