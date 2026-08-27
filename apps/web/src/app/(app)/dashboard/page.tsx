@@ -24,7 +24,7 @@ import {
 } from "@/features/transactions/transaction.utils";
 
 import {
-  AddExpenseDialog,
+  AddTransactionDialog,
 } from "@/features/transactions/components/add-expense-dialog";
 
 import {
@@ -358,7 +358,7 @@ export default function DashboardPage() {
       <div className="pointer-events-none fixed inset-x-0 bottom-[95px] z-40 lg:bottom-8">
         <div className="mx-auto flex w-full max-w-[469px] justify-end px-[18px] lg:max-w-[1180px] lg:pl-[318px] lg:pr-[52px]">
           <div className="pointer-events-auto">
-            <AddExpenseDialog />
+            <AddTransactionDialog />
           </div>
         </div>
       </div>
