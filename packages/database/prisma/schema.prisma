@@ -67,6 +67,8 @@ model User {
   financialAccounts FinancialAccount[]
   transactions      Transaction[]
   categories        Category[]
+  monthlyGlobalBudgets   MonthlyGlobalBudget[]
+  monthlyCategoryBudgets MonthlyCategoryBudget[]
 
   @@map("user")
 }
@@ -272,6 +274,7 @@ model Category {
   children Category[] @relation("CategoryHierarchy")
 
   allocations TransactionAllocation[]
+  monthlyCategoryBudgets MonthlyCategoryBudget[]
 
   @@index([userId, type])
   @@index([type, isSystem, isArchived])
@@ -302,4 +305,55 @@ model TransactionAllocation {
   @@index([transactionId])
   @@index([categoryId])
   @@map("transaction_allocations")
+}
+
+// ======================================================
+// BUDGETS
+// ======================================================
+
+model MonthlyGlobalBudget {
+  id String @id @default(uuid()) @db.Uuid
+
+  userId String @map("user_id") @db.Uuid
+
+  month DateTime @db.Date
+
+  amountMinor BigInt @map("amount_minor")
+
+  currencyCode String @default("MGA") @map("currency_code") @db.VarChar(3)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, month])
+  @@index([userId, month])
+  @@map("monthly_global_budgets")
+}
+
+model MonthlyCategoryBudget {
+  id String @id @default(uuid()) @db.Uuid
+
+  userId String @map("user_id") @db.Uuid
+
+  categoryId String @map("category_id") @db.Uuid
+
+  month DateTime @db.Date
+
+  amountMinor BigInt @map("amount_minor")
+
+  currencyCode String @default("MGA") @map("currency_code") @db.VarChar(3)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+
+  @@unique([userId, month, categoryId])
+  @@index([userId, month])
+  @@index([categoryId])
+  @@map("monthly_category_budgets")
 }
