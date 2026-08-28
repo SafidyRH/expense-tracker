@@ -4,6 +4,10 @@ import {
   getCategories,
 } from "./category.api";
 
+import {
+  cacheOfflineCategories,
+} from "@/features/offline/offline-expense-db";
+
 import type {
   CategoryType,
 } from "./category.types";
@@ -17,7 +21,15 @@ export function useCategories(
       type ?? "ALL",
     ],
 
-    queryFn: () =>
-      getCategories(type),
+    queryFn: async () => {
+      const response =
+        await getCategories(type);
+
+      await cacheOfflineCategories(
+        response.data
+      );
+
+      return response;
+    },
   });
 }
