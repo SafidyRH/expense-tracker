@@ -106,6 +106,12 @@ export function useCreateIncome() {
             "accounts",
           ],
         }),
+
+        queryClient.invalidateQueries({
+          queryKey: [
+            "budgets",
+          ],
+        }),
       ]);
     },
   });
