@@ -2,12 +2,29 @@
 
 import Link from "next/link";
 
+import type {
+  LucideIcon,
+} from "lucide-react";
+
 import {
+  BadgeDollarSign,
+  BriefcaseBusiness,
   CalendarDays,
+  Car,
   Clock3,
+  CircleEllipsis,
+  Gift,
+  Gamepad2,
+  HeartPulse,
+  House,
+  Laptop,
   List,
   ReceiptText,
+  Repeat,
+  ShoppingBag,
+  Smartphone,
   Utensils,
+  Users,
   WalletCards,
 } from "lucide-react";
 
@@ -371,14 +388,15 @@ export default function DashboardPage() {
             (
               transaction
             ) => {
-              const entry =
-                transaction
-                  .entries[0];
-
               const category =
                 transaction
                   .allocations[0]
                   ?.category;
+
+              const displayAmount =
+                getTransactionDisplayAmount(
+                  transaction
+                );
 
               return (
                 <div
@@ -389,19 +407,28 @@ export default function DashboardPage() {
                 >
                   <div className="flex min-w-0 items-start gap-3">
                     <div className="flex size-8 shrink-0 items-center justify-center text-neutral-950">
-                      <Utensils className="size-[22px]" strokeWidth={1.9} />
+                      <TransactionCategoryIcon
+                        transaction={
+                          transaction
+                        }
+                      />
                     </div>
 
                     <div className="min-w-0">
                       <p className="truncate text-[13px] font-semibold leading-[16px]">
                         {transaction.description ??
                           category?.name ??
+                          transaction
+                            .entries[0]
+                            ?.account
+                            .name ??
                           "Transaction"}
                       </p>
 
                       <p className="mt-[2px] truncate text-[11px] leading-[15px] text-[#77736d]">
                         {category?.name ??
-                          entry
+                          transaction
+                            .entries[0]
                             ?.account
                             .name ??
                           transaction.type}
@@ -409,12 +436,20 @@ export default function DashboardPage() {
                     </div>
                   </div>
 
-                  {entry && (
+                  {displayAmount && (
                     <div className="shrink-0 pt-[1px] text-right">
-                      <p className="text-[12px] font-semibold leading-[16px]">
-                        {formatMoney(
-                          entry.amountMinor,
-                          entry.currencyCode
+                      <p
+                        className={`text-[12px] font-semibold leading-[16px] ${
+                          displayAmount.amount > 0n
+                            ? "text-[#169253]"
+                            : displayAmount.amount < 0n
+                              ? "text-[#c73327]"
+                              : "text-neutral-950"
+                        }`}
+                      >
+                        {formatSignedTransactionMoney(
+                          displayAmount.amount,
+                          displayAmount.currencyCode
                         )}
                       </p>
                     </div>
@@ -482,6 +517,129 @@ function DashboardCard({
         </div>
       )}
     </div>
+  );
+}
+
+function TransactionCategoryIcon({
+  transaction,
+}: {
+  transaction: Transaction;
+}) {
+  const iconName =
+    transaction.allocations[0]
+      ?.category.icon ??
+    getFallbackIconName(
+      transaction.type
+    );
+
+  const Icon =
+    categoryIcons[iconName] ??
+    categoryIcons[
+      getFallbackIconName(
+        transaction.type
+      )
+    ] ??
+    CircleEllipsis;
+
+  return (
+    <Icon
+      className="size-[22px]"
+      strokeWidth={1.9}
+    />
+  );
+}
+
+const categoryIcons: Record<
+  string,
+  LucideIcon
+> = {
+  utensils: Utensils,
+  car: Car,
+  house: House,
+  "heart-pulse": HeartPulse,
+  "shopping-bag": ShoppingBag,
+  "gamepad-2": Gamepad2,
+  smartphone: Smartphone,
+  repeat: Repeat,
+  users: Users,
+  "circle-ellipsis":
+    CircleEllipsis,
+  "briefcase-business":
+    BriefcaseBusiness,
+  laptop: Laptop,
+  "badge-dollar-sign":
+    BadgeDollarSign,
+  gift: Gift,
+};
+
+function getFallbackIconName(
+  type: Transaction["type"]
+) {
+  if (type === "INCOME") {
+    return "badge-dollar-sign";
+  }
+
+  if (type === "TRANSFER") {
+    return "repeat";
+  }
+
+  return "circle-ellipsis";
+}
+
+function getTransactionDisplayAmount(
+  transaction: Transaction
+) {
+  const currencyCode =
+    transaction.entries[0]
+      ?.currencyCode;
+
+  if (!currencyCode) {
+    return null;
+  }
+
+  if (
+    transaction.type === "TRANSFER"
+  ) {
+    const positiveEntry =
+      transaction.entries.find(
+        (entry) =>
+          BigInt(entry.amountMinor) >
+          0n
+      );
+
+    return {
+      amount: positiveEntry
+        ? BigInt(
+            positiveEntry.amountMinor
+          )
+        : 0n,
+      currencyCode,
+    };
+  }
+
+  return {
+    amount:
+      getTransactionAmount(
+        transaction
+      ),
+    currencyCode,
+  };
+}
+
+function formatSignedTransactionMoney(
+  amount: bigint,
+  currencyCode: string
+) {
+  if (amount > 0n) {
+    return `+${formatMoney(
+      amount,
+      currencyCode
+    )}`;
+  }
+
+  return formatMoney(
+    amount,
+    currencyCode
   );
 }
 
