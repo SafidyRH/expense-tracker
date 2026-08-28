@@ -17,6 +17,8 @@ export interface TransactionAllocation {
   category: {
     id: string;
     name: string;
+    icon: string | null;
+    systemKey: string | null;
   };
 
   amountMinor: string;

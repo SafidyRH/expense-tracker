@@ -12,6 +12,16 @@ import {
   getTransactions,
 } from "./transaction.api";
 
+import {
+  enqueueOfflineExpense,
+  isNetworkFailure,
+  syncOfflineExpenses,
+} from "@/features/offline/offline-expense-sync";
+
+import type {
+  CreateExpenseInput,
+} from "./transaction.types";
+
 import type {
   TransactionQuery,
 } from "./transaction.api";
@@ -64,8 +74,41 @@ export function useCreateExpense() {
     useQueryClient();
 
   return useMutation({
-    mutationFn:
-      createExpense,
+    mutationFn: async (
+      input: CreateExpenseInput
+    ) => {
+      const inputWithClientId = {
+        ...input,
+        clientGeneratedId:
+          input.clientGeneratedId ??
+          crypto.randomUUID(),
+      };
+
+      if (
+        typeof navigator !== "undefined" &&
+        !navigator.onLine
+      ) {
+        return enqueueOfflineExpense(
+          inputWithClientId,
+          "Dépense enregistrée hors ligne. Synchronisation automatique au retour du réseau."
+        );
+      }
+
+      try {
+        return await createExpense(
+          inputWithClientId
+        );
+      } catch (error) {
+        if (isNetworkFailure(error)) {
+          return enqueueOfflineExpense(
+            inputWithClientId,
+            "Connexion perdue. La dépense sera synchronisée automatiquement."
+          );
+        }
+
+        throw error;
+      }
+    },
 
     onSuccess: async () => {
       await Promise.all([
@@ -138,7 +181,17 @@ export function useCreateTransfer() {
             "accounts",
           ],
         }),
+
+        queryClient.invalidateQueries({
+          queryKey: [
+            "budgets",
+          ],
+        }),
       ]);
+
+      await syncOfflineExpenses(
+        queryClient
+      );
     },
   });
 }
