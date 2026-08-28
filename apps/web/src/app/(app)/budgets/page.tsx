@@ -1,12 +1,9 @@
 "use client";
 
-import {
-  FormEvent,
-  useMemo,
-  useState,
-} from "react";
+import { FormEvent, useMemo, useState } from "react";
 
 import {
+  AlertTriangle,
   CalendarDays,
   ChartPie,
   MoreHorizontal,
@@ -17,9 +14,7 @@ import {
   WalletCards,
 } from "lucide-react";
 
-import {
-  Button,
-} from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 
 import {
   Dialog,
@@ -38,13 +33,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-import {
-  Input,
-} from "@/components/ui/input";
+import { Input } from "@/components/ui/input";
 
-import {
-  Label,
-} from "@/components/ui/label";
+import { Label } from "@/components/ui/label";
 
 import {
   Select,
@@ -54,9 +45,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-import {
-  useCategories,
-} from "@/features/categories/category.queries";
+import { useCategories } from "@/features/categories/category.queries";
 
 import {
   useBudgetOverview,
@@ -66,104 +55,70 @@ import {
 } from "@/features/budgets/budget.queries";
 
 import type {
+  BudgetAlert,
+  BudgetProgress,
   CategoryBudgetProgress,
 } from "@/features/budgets/budget.types";
 
-import {
-  formatMoney,
-} from "@/lib/money";
+import { formatMoney } from "@/lib/money";
 
 export default function BudgetsPage() {
-  const [month, setMonth] =
-    useState(getCurrentMonth());
+  const [month, setMonth] = useState(getCurrentMonth());
 
-  const [
-    globalDialogOpen,
-    setGlobalDialogOpen,
-  ] = useState(false);
+  const [globalDialogOpen, setGlobalDialogOpen] = useState(false);
 
-  const [
-    categoryDialogOpen,
-    setCategoryDialogOpen,
-  ] = useState(false);
+  const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
 
-  const [
-    editedCategoryBudget,
-    setEditedCategoryBudget,
-  ] = useState<CategoryBudgetProgress | null>(
-    null
+  const [editedCategoryBudget, setEditedCategoryBudget] =
+    useState<CategoryBudgetProgress | null>(null);
+
+  const overview = useBudgetOverview(month);
+
+  const categories = useCategories("EXPENSE");
+
+  const categoryBudgets = useMemo(
+    () => overview.data?.data.categories ?? [],
+    [overview.data?.data.categories],
   );
 
-  const overview =
-    useBudgetOverview(month);
+  const global = overview.data?.data.global;
 
-  const categories =
-    useCategories("EXPENSE");
+  const allocation = overview.data?.data.allocation;
 
-  const categoryBudgets =
-    useMemo(
-      () =>
-        overview.data?.data.categories ??
-        [],
-      [
-        overview.data?.data.categories,
-      ]
-    );
+  const categoryBudgetTotal = categoryBudgets.reduce(
+    (total, budget) => total + BigInt(budget.amountMinor),
+    0n,
+  );
 
-  const global =
-    overview.data?.data.global;
+  const categorySpentTotal = categoryBudgets.reduce(
+    (total, budget) => total + BigInt(budget.spentMinor),
+    0n,
+  );
 
-  const categoryBudgetTotal =
-    categoryBudgets.reduce(
-      (total, budget) =>
-        total +
-        BigInt(
-          budget.amountMinor
-        ),
-      0n
-    );
+  const globalConsumed =
+    global?.percentConsumed ?? 0;
 
-  const categorySpentTotal =
-    categoryBudgets.reduce(
-      (total, budget) =>
-        total +
-        BigInt(
-          budget.spentMinor
-        ),
-      0n
-    );
+  const selectedCategoryIds = useMemo(
+    () => new Set(categoryBudgets.map((budget) => budget.category.id)),
+    [categoryBudgets],
+  );
 
-  const averageConsumed =
-    categoryBudgets.length > 0
-      ? Math.round(
-          categoryBudgets.reduce(
-            (total, budget) =>
-              total +
-              budget.percentConsumed,
-            0
-          ) /
-            categoryBudgets.length
-        )
-      : 0;
+  const budgetAlerts = useMemo(
+    () =>
+      buildBudgetAlertItems(
+        global,
+        allocation?.unallocated,
+        categoryBudgets,
+      ),
+    [
+      global,
+      allocation?.unallocated,
+      categoryBudgets,
+    ],
+  );
 
-  const selectedCategoryIds =
-    useMemo(
-      () =>
-        new Set(
-          categoryBudgets.map(
-            (budget) =>
-              budget.category.id
-          )
-        ),
-      [categoryBudgets]
-    );
-
-  function openCategoryBudgetDialog(
-    budget?: CategoryBudgetProgress
-  ) {
-    setEditedCategoryBudget(
-      budget ?? null
-    );
+  function openCategoryBudgetDialog(budget?: CategoryBudgetProgress) {
+    setEditedCategoryBudget(budget ?? null);
     setCategoryDialogOpen(true);
   }
 
@@ -183,10 +138,7 @@ export default function BudgetsPage() {
 
               <p className="mt-[12px] break-words text-[28px] font-medium leading-[33px] tracking-[-0.01em]">
                 {global
-                  ? formatMoney(
-                      global.amountMinor,
-                      global.currencyCode
-                    )
+                  ? formatMoney(global.amountMinor, global.currencyCode)
                   : formatMoney(0n)}
               </p>
             </div>
@@ -195,9 +147,7 @@ export default function BudgetsPage() {
               type="button"
               variant="ghost"
               size="icon"
-              onClick={() =>
-                setGlobalDialogOpen(true)
-              }
+              onClick={() => setGlobalDialogOpen(true)}
               className="size-10 rounded-full bg-[#f1efeb] hover:bg-[#e7e3dc]"
             >
               <Pencil className="size-4" />
@@ -205,74 +155,57 @@ export default function BudgetsPage() {
           </div>
 
           <div className="mt-auto space-y-3">
-            <BudgetProgressBar
-              percent={
-                global?.percentConsumed ??
-                0
-              }
-            />
+            <BudgetProgressBar percent={global?.percentConsumed ?? 0} />
+
+            {global?.alert && <BudgetAlertPill alert={global.alert} />}
 
             <div className="grid grid-cols-3 gap-2 text-[12px] leading-[17px]">
               <BudgetMetric
                 label="Dépensé"
                 value={
                   global
-                    ? formatMoney(
-                        global.spentMinor,
-                        global.currencyCode
-                      )
+                    ? formatMoney(global.spentMinor, global.currencyCode)
                     : formatMoney(0n)
                 }
               />
 
               <BudgetMetric
                 label={
-                  global &&
-                  BigInt(
-                    global.remainingMinor
-                  ) < 0n
+                  global && BigInt(global.remainingMinor) < 0n
                     ? "Dépassement"
                     : "Restant"
                 }
                 value={
                   global
-                    ? formatMoney(
-                        global.remainingMinor,
-                        global.currencyCode
-                      )
+                    ? formatMoney(global.remainingMinor, global.currencyCode)
                     : formatMoney(0n)
                 }
               />
 
               <BudgetMetric
                 label="Consommé"
-                value={`${formatPercent(
-                  global?.percentConsumed ??
-                    0
-                )}%`}
+                value={`${formatPercent(global?.percentConsumed ?? 0)}%`}
               />
             </div>
           </div>
         </div>
 
         <SummaryCard
-          icon={
-            <Target className="size-[15px]" />
-          }
+          icon={<Target className="size-[15px]" />}
           label="Catégories"
           value={`${categoryBudgets.length}`}
           subtitle="Budgets définis"
         />
 
         <SummaryCard
-          icon={
-            <ChartPie className="size-[15px]" />
-          }
-          label="Moyenne"
-          value={`${averageConsumed}%`}
-          subtitle="Consommation"
+          icon={<ChartPie className="size-[15px]" />}
+          label="Global"
+          value={`${formatPercent(globalConsumed)}%`}
+          subtitle="Consommation totale"
         />
       </section>
+
+      <BudgetAlertsPanel alerts={budgetAlerts} />
 
       <section className="rounded-[24px] bg-white px-[17px] pb-[18px] pt-[18px] shadow-[0_1px_0_rgba(0,0,0,0.02)] lg:px-6 lg:py-6">
         <div className="mb-[18px] flex items-center justify-between gap-3">
@@ -287,27 +220,45 @@ export default function BudgetsPage() {
           <Input
             type="month"
             value={month}
-            onChange={(event) =>
-              setMonth(
-                event.target.value
-              )
-            }
+            onChange={(event) => setMonth(event.target.value)}
             className="h-10 w-[154px] rounded-[16px]"
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-[14px]">
+        <div className="grid grid-cols-2 gap-[14px] xl:grid-cols-4">
           <BudgetMetricPanel
-            label="Budget catégories"
+            label="Alloué catégories"
             value={formatMoney(
-              categoryBudgetTotal
+              allocation?.allocatedCategoryAmountMinor ??
+                categoryBudgetTotal,
+              global?.currencyCode,
             )}
           />
 
           <BudgetMetricPanel
-            label="Dépensé catégories"
+            label="Dépensé enveloppes"
             value={formatMoney(
-              categorySpentTotal
+              allocation?.spentInCategoryBudgetsMinor ??
+                categorySpentTotal,
+              global?.currencyCode,
+            )}
+          />
+
+          <BudgetMetricPanel
+            label="Budget non alloué"
+            value={formatMoney(
+              allocation?.unallocated.amountMinor ??
+                0n,
+              global?.currencyCode,
+            )}
+          />
+
+          <BudgetMetricPanel
+            label="Dépensé hors enveloppes"
+            value={formatMoney(
+              allocation?.spentOutsideCategoryBudgetsMinor ??
+                0n,
+              global?.currencyCode,
             )}
           />
         </div>
@@ -327,9 +278,7 @@ export default function BudgetsPage() {
             type="button"
             variant="ghost"
             size="icon"
-            onClick={() =>
-              openCategoryBudgetDialog()
-            }
+            onClick={() => openCategoryBudgetDialog()}
             className="size-10 rounded-full bg-[#f1efeb] hover:bg-[#e7e3dc]"
           >
             <Plus className="size-4" />
@@ -376,9 +325,7 @@ export default function BudgetsPage() {
 
               <Button
                 type="button"
-                onClick={() =>
-                  openCategoryBudgetDialog()
-                }
+                onClick={() => openCategoryBudgetDialog()}
                 className="mt-6 h-12 rounded-full bg-neutral-950 px-5 text-[12px] font-medium text-white shadow-[0_8px_24px_rgba(0,0,0,0.25)] hover:bg-neutral-800"
               >
                 <Plus className="mr-2 size-[16px]" />
@@ -388,20 +335,14 @@ export default function BudgetsPage() {
           )}
 
         <div className="grid gap-[14px] lg:grid-cols-2">
-          {categoryBudgets.map(
-            (budget) => (
-              <CategoryBudgetCard
-                key={budget.category.id}
-                budget={budget}
-                month={month}
-                onEdit={() =>
-                  openCategoryBudgetDialog(
-                    budget
-                  )
-                }
-              />
-            )
-          )}
+          {categoryBudgets.map((budget) => (
+            <CategoryBudgetCard
+              key={budget.category.id}
+              budget={budget}
+              month={month}
+              onEdit={() => openCategoryBudgetDialog(budget)}
+            />
+          ))}
         </div>
       </section>
 
@@ -411,9 +352,7 @@ export default function BudgetsPage() {
             <div className="pointer-events-auto">
               <Button
                 type="button"
-                onClick={() =>
-                  openCategoryBudgetDialog()
-                }
+                onClick={() => openCategoryBudgetDialog()}
                 className="h-12 rounded-full bg-neutral-950 px-5 text-[12px] font-medium text-white shadow-[0_8px_24px_rgba(0,0,0,0.25)] hover:bg-neutral-800"
               >
                 <Plus className="mr-2 size-[16px]" />
@@ -426,34 +365,22 @@ export default function BudgetsPage() {
 
       <GlobalBudgetDialog
         month={month}
-        amountMinor={
-          global?.amountMinor ?? "0"
-        }
+        amountMinor={global?.amountMinor ?? "0"}
         open={globalDialogOpen}
-        onOpenChange={
-          setGlobalDialogOpen
-        }
+        onOpenChange={setGlobalDialogOpen}
       />
 
       <CategoryBudgetDialog
         month={month}
-        budget={
-          editedCategoryBudget
-        }
-        categories={
-          categories.data?.data ?? []
-        }
-        selectedCategoryIds={
-          selectedCategoryIds
-        }
+        budget={editedCategoryBudget}
+        categories={categories.data?.data ?? []}
+        selectedCategoryIds={selectedCategoryIds}
         open={categoryDialogOpen}
         onOpenChange={(open) => {
           setCategoryDialogOpen(open);
 
           if (!open) {
-            setEditedCategoryBudget(
-              null
-            );
+            setEditedCategoryBudget(null);
           }
         }}
       />
@@ -493,33 +420,111 @@ function SummaryCard({
   );
 }
 
-function BudgetMetric({
-  label,
-  value,
-}: {
-  label: string;
-  value: string;
-}) {
+interface BudgetAlertItem {
+  id: string;
+  name: string;
+  alert: BudgetAlert;
+  budget: BudgetProgress;
+}
+
+function BudgetAlertsPanel({ alerts }: { alerts: BudgetAlertItem[] }) {
+  return (
+    <section className="rounded-[24px] bg-white px-[17px] pb-[18px] pt-[18px] shadow-[0_1px_0_rgba(0,0,0,0.02)] lg:px-6 lg:py-6">
+      <div className="mb-[18px] flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2 text-[#64605b]">
+          <AlertTriangle className="size-[15px]" />
+
+          <span className="text-[10px] font-medium uppercase tracking-[0.18em]">
+            Alertes
+          </span>
+        </div>
+
+        <span className="rounded-full bg-[#f1efeb] px-3 py-1 text-[11px] font-semibold text-neutral-950">
+          {alerts.length}
+        </span>
+      </div>
+
+      {alerts.length === 0 ? (
+        <div className="rounded-[20px] bg-[#f7f5f1] px-4 py-4">
+          <p className="text-[14px] font-semibold leading-[18px]">
+            Aucune alerte active
+          </p>
+
+          {/* <p className="mt-1 text-[12px] leading-[18px] text-[#706c66]">
+            Les seuils 50 %, 80 %, 100 % et dépassement se déclencheront automatiquement.
+          </p> */}
+        </div>
+      ) : (
+        <div className="grid gap-3 lg:grid-cols-2">
+          {alerts.map((item) => (
+            <BudgetAlertCard key={item.id} item={item} />
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function BudgetAlertCard({ item }: { item: BudgetAlertItem }) {
+  const tone = getBudgetAlertTone(item.alert);
+
+  return (
+    <article className={`rounded-[20px] border px-4 py-4 ${tone.card}`}>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="truncate text-[14px] font-semibold leading-[18px]">
+            {item.name}
+          </p>
+
+          <p className="mt-1 text-[12px] leading-[18px] text-[#706c66]">
+            {getBudgetAlertMessage(item.alert)}
+          </p>
+        </div>
+
+        <BudgetAlertPill alert={item.alert} />
+      </div>
+
+      <div className="mt-4">
+        <BudgetProgressBar percent={item.budget.percentConsumed} />
+      </div>
+
+      <div className="mt-3 flex items-center justify-between gap-3 text-[12px] leading-[17px]">
+        <span className="text-[#706c66]">
+          {formatMoney(item.budget.spentMinor, item.budget.currencyCode)}{" "}
+          dépensé
+        </span>
+
+        <strong className="shrink-0 font-semibold text-neutral-950">
+          {formatPercent(item.budget.percentConsumed)}%
+        </strong>
+      </div>
+    </article>
+  );
+}
+
+function BudgetAlertPill({ alert }: { alert: BudgetAlert }) {
+  const tone = getBudgetAlertTone(alert);
+
+  return (
+    <span
+      className={`inline-flex h-7 shrink-0 items-center rounded-full px-3 text-[11px] font-semibold ${tone.pill}`}
+    >
+      {alert.label}
+    </span>
+  );
+}
+
+function BudgetMetric({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <p className="text-[#8a867f]">
-        {label}
-      </p>
+      <p className="text-[#8a867f]">{label}</p>
 
-      <p className="mt-1 truncate font-semibold text-neutral-950">
-        {value}
-      </p>
+      <p className="mt-1 truncate font-semibold text-neutral-950">{value}</p>
     </div>
   );
 }
 
-function BudgetMetricPanel({
-  label,
-  value,
-}: {
-  label: string;
-  value: string;
-}) {
+function BudgetMetricPanel({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-[20px] bg-[#f7f5f1] p-4">
       <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-[#64605b]">
@@ -542,18 +547,13 @@ function CategoryBudgetCard({
   month: string;
   onEdit: () => void;
 }) {
-  const deleteBudget =
-    useDeleteCategoryBudget();
+  const deleteBudget = useDeleteCategoryBudget();
 
-  const remaining =
-    BigInt(
-      budget.remainingMinor
-    );
+  const remaining = BigInt(budget.remainingMinor);
 
   async function handleDelete() {
     await deleteBudget.mutateAsync({
-      categoryId:
-        budget.category.id,
+      categoryId: budget.category.id,
 
       month,
     });
@@ -568,11 +568,14 @@ function CategoryBudgetCard({
           </p>
 
           <p className="mt-[3px] text-[12px] leading-[17px] text-[#706c66]">
-            {formatPercent(
-              budget.percentConsumed
-            )}
-            % consommé
+            {formatPercent(budget.percentConsumed)}% consommé
           </p>
+
+          {budget.alert && (
+            <div className="mt-2">
+              <BudgetAlertPill alert={budget.alert} />
+            </div>
+          )}
         </div>
 
         <DropdownMenu>
@@ -616,40 +619,23 @@ function CategoryBudgetCard({
       </div>
 
       <div className="mt-4">
-        <BudgetProgressBar
-          percent={
-            budget.percentConsumed
-          }
-        />
+        <BudgetProgressBar percent={budget.percentConsumed} />
       </div>
 
       <div className="mt-4 grid grid-cols-3 gap-2 text-[12px] leading-[17px]">
         <BudgetMetric
           label="Budget"
-          value={formatMoney(
-            budget.amountMinor,
-            budget.currencyCode
-          )}
+          value={formatMoney(budget.amountMinor, budget.currencyCode)}
         />
 
         <BudgetMetric
           label="Dépensé"
-          value={formatMoney(
-            budget.spentMinor,
-            budget.currencyCode
-          )}
+          value={formatMoney(budget.spentMinor, budget.currencyCode)}
         />
 
         <BudgetMetric
-          label={
-            remaining < 0n
-              ? "Dépassé"
-              : "Restant"
-          }
-          value={formatMoney(
-            budget.remainingMinor,
-            budget.currencyCode
-          )}
+          label={remaining < 0n ? "Dépassé" : "Restant"}
+          value={formatMoney(budget.remainingMinor, budget.currencyCode)}
         />
       </div>
     </article>
@@ -702,35 +688,21 @@ function CategoryBudgetDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
-  const availableCategories =
-    categories.filter(
-      (category) =>
-        category.id ===
-          budget?.category.id ||
-        !selectedCategoryIds.has(
-          category.id
-        )
-    );
+  const availableCategories = categories.filter(
+    (category) =>
+      category.id === budget?.category.id ||
+      !selectedCategoryIds.has(category.id),
+  );
 
   return (
     <BudgetAmountDialog
       key={`${month}-${budget?.category.id ?? "new"}-${open ? "open" : "closed"}`}
-      title={
-        budget
-          ? "Modifier le budget"
-          : "Budget par catégorie"
-      }
+      title={budget ? "Modifier le budget" : "Budget par catégorie"}
       description="Choisissez une catégorie de dépense et son enveloppe mensuelle."
       month={month}
-      initialAmount={
-        budget?.amountMinor ?? "0"
-      }
-      initialCategoryId={
-        budget?.category.id
-      }
-      categories={
-        availableCategories
-      }
+      initialAmount={budget?.amountMinor ?? "0"}
+      initialCategoryId={budget?.category.id}
+      categories={availableCategories}
       open={open}
       onOpenChange={onOpenChange}
       onSubmitBudget={(input, categoryId) => ({
@@ -789,124 +761,83 @@ function BudgetAmountDialog({
       amountMinor: string;
       currencyCode: string;
     },
-    categoryId: string
+    categoryId: string,
   ) => BudgetSubmitTarget;
 }) {
-  const [amount, setAmount] =
-    useState(initialAmount);
+  const [amount, setAmount] = useState(initialAmount);
 
-  const [
-    categoryId,
-    setCategoryId,
-  ] = useState(
-    initialCategoryId ?? ""
-  );
+  const [categoryId, setCategoryId] = useState(initialCategoryId ?? "");
 
-  const [error, setError] =
-    useState<string | null>(
-      null
-    );
+  const [error, setError] = useState<string | null>(null);
 
-  const upsertGlobal =
-    useUpsertGlobalBudget();
+  const upsertGlobal = useUpsertGlobalBudget();
 
-  const upsertCategory =
-    useUpsertCategoryBudget();
+  const upsertCategory = useUpsertCategoryBudget();
 
-  const pending =
-    upsertGlobal.isPending ||
-    upsertCategory.isPending;
+  const pending = upsertGlobal.isPending || upsertCategory.isPending;
 
-  async function handleSubmit(
-    event: FormEvent<HTMLFormElement>
-  ) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     setError(null);
 
-    const normalizedAmount =
-      amount
-        .replace(/\s/g, "")
-        .trim();
+    const normalizedAmount = amount.replace(/\s/g, "").trim();
 
-    if (
-      !/^\d+$/.test(
-        normalizedAmount
-      )
-    ) {
-      setError(
-        "Veuillez saisir un montant valide."
-      );
+    if (!/^\d+$/.test(normalizedAmount)) {
+      setError("Veuillez saisir un montant valide.");
 
       return;
     }
 
-    if (
-      categories &&
-      !categoryId
-    ) {
-      setError(
-        "Veuillez sélectionner une catégorie."
-      );
+    if (categories && !categoryId) {
+      setError("Veuillez sélectionner une catégorie.");
 
       return;
     }
 
-    const target =
-      onSubmitBudget(
-        {
-          month,
-          amountMinor:
-            normalizedAmount,
-          currencyCode: "MGA",
-        },
-        categoryId
-      );
+    const target = onSubmitBudget(
+      {
+        month,
+        amountMinor: normalizedAmount,
+        currencyCode: "MGA",
+      },
+      categoryId,
+    );
 
-    if (
-      target.scope === "GLOBAL"
-    ) {
-      await upsertGlobal.mutateAsync(
-        target.input
-      );
-    } else {
-      await upsertCategory.mutateAsync({
-        categoryId:
-          target.categoryId,
+    try {
+      if (target.scope === "GLOBAL") {
+        await upsertGlobal.mutateAsync(target.input);
+      } else {
+        await upsertCategory.mutateAsync({
+          categoryId: target.categoryId,
 
-        input:
-          target.input,
-      });
+          input: target.input,
+        });
+      }
+
+      onOpenChange(false);
+    } catch (error) {
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Impossible d'enregistrer le budget.",
+      );
     }
-
-    onOpenChange(false);
   }
 
   return (
-    <Dialog
-      open={open}
-      onOpenChange={onOpenChange}
-    >
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="w-[calc(100%-32px)] max-w-[420px] rounded-[28px] border-0 p-5">
         <DialogHeader>
-          <DialogTitle>
-            {title}
-          </DialogTitle>
+          <DialogTitle>{title}</DialogTitle>
 
-          <DialogDescription>
-            {description}
-          </DialogDescription>
+          <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
 
-        <form
-          onSubmit={handleSubmit}
-          className="space-y-5"
-        >
+        <form onSubmit={handleSubmit} className="space-y-5">
           {categories && (
             <div className="space-y-2">
-              <Label>
-                Catégorie
-              </Label>
+              <Label>Catégorie</Label>
 
               <Select
                 value={categoryId}
@@ -921,25 +852,18 @@ function BudgetAmountDialog({
                 </SelectTrigger>
 
                 <SelectContent>
-                  {categories.map(
-                    (category) => (
-                      <SelectItem
-                        key={category.id}
-                        value={category.id}
-                      >
-                        {category.name}
-                      </SelectItem>
-                    )
-                  )}
+                  {categories.map((category) => (
+                    <SelectItem key={category.id} value={category.id}>
+                      {category.name}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
           )}
 
           <div className="space-y-2">
-            <Label>
-              Montant
-            </Label>
+            <Label>Montant</Label>
 
             <div className="relative">
               <Input
@@ -947,11 +871,7 @@ function BudgetAmountDialog({
                 min="0"
                 step="1"
                 value={amount}
-                onChange={(event) =>
-                  setAmount(
-                    event.target.value
-                  )
-                }
+                onChange={(event) => setAmount(event.target.value)}
                 className="pr-12"
                 required
               />
@@ -962,19 +882,13 @@ function BudgetAmountDialog({
             </div>
           </div>
 
-          {error && (
-            <p className="text-xs text-destructive">
-              {error}
-            </p>
-          )}
+          {error && <p className="text-xs text-destructive">{error}</p>}
 
           <DialogFooter>
             <Button
               type="button"
               variant="outline"
-              onClick={() =>
-                onOpenChange(false)
-              }
+              onClick={() => onOpenChange(false)}
               className="rounded-full"
             >
               Annuler
@@ -985,9 +899,7 @@ function BudgetAmountDialog({
               disabled={pending}
               className="rounded-full bg-neutral-950"
             >
-              {pending
-                ? "Enregistrement..."
-                : "Enregistrer"}
+              {pending ? "Enregistrement..." : "Enregistrer"}
             </Button>
           </DialogFooter>
         </form>
@@ -996,16 +908,8 @@ function BudgetAmountDialog({
   );
 }
 
-function BudgetProgressBar({
-  percent,
-}: {
-  percent: number;
-}) {
-  const width =
-    Math.min(
-      Math.max(percent, 0),
-      100
-    );
+function BudgetProgressBar({ percent }: { percent: number }) {
+  const width = Math.min(Math.max(percent, 0), 100);
 
   return (
     <div className="h-[13px] overflow-hidden rounded-full bg-[#eeece8]">
@@ -1014,28 +918,114 @@ function BudgetProgressBar({
           width: `${width}%`,
         }}
         className={`h-full rounded-full ${
-          percent > 100
-            ? "bg-[#f14a38]"
-            : "bg-[#32c96a]"
+          percent > 100 ? "bg-[#f14a38]" : "bg-[#32c96a]"
         }`}
       />
     </div>
   );
 }
 
-function getCurrentMonth() {
-  const now =
-    new Date();
+function buildBudgetAlertItems(
+  global: BudgetProgress | undefined,
+  unallocated: BudgetProgress | undefined,
+  categories: CategoryBudgetProgress[],
+) {
+  const items: BudgetAlertItem[] = [];
 
-  return `${now.getFullYear()}-${String(
-    now.getMonth() + 1
-  ).padStart(2, "0")}`;
+  if (global?.alert) {
+    items.push({
+      id: "global",
+      name: "Budget mensuel",
+      alert: global.alert,
+      budget: global,
+    });
+  }
+
+  if (unallocated?.alert) {
+    items.push({
+      id: "unallocated",
+      name: "Budget non alloué",
+      alert: unallocated.alert,
+      budget: unallocated,
+    });
+  }
+
+  for (const category of categories) {
+    if (!category.alert) {
+      continue;
+    }
+
+    items.push({
+      id: category.category.id,
+      name: category.category.name,
+      alert: category.alert,
+      budget: category,
+    });
+  }
+
+  return items.sort(
+    (first, second) =>
+      getBudgetAlertRank(second.alert) - getBudgetAlertRank(first.alert),
+  );
 }
 
-function formatPercent(
-  value: number
-) {
-  return Number.isInteger(value)
-    ? String(value)
-    : value.toFixed(1);
+function getBudgetAlertRank(alert: BudgetAlert) {
+  switch (alert.level) {
+    case "OVER_BUDGET":
+      return 4;
+    case "HUNDRED_PERCENT":
+      return 3;
+    case "EIGHTY_PERCENT":
+      return 2;
+    case "FIFTY_PERCENT":
+      return 1;
+  }
+}
+
+function getBudgetAlertTone(alert: BudgetAlert) {
+  switch (alert.severity) {
+    case "critical":
+      return {
+        card: "border-[#f14a38]/35 bg-[#fff1ef]",
+        pill: "bg-[#f14a38] text-white",
+      };
+    case "danger":
+      return {
+        card: "border-[#f14a38]/25 bg-[#fff5f3]",
+        pill: "bg-[#ffe0dc] text-[#9f2419]",
+      };
+    case "warning":
+      return {
+        card: "border-[#ffc916]/45 bg-[#fff9df]",
+        pill: "bg-[#ffe884] text-[#665000]",
+      };
+    case "info":
+      return {
+        card: "border-[#1681b5]/20 bg-[#eff8fd]",
+        pill: "bg-[#dff1fb] text-[#145f83]",
+      };
+  }
+}
+
+function getBudgetAlertMessage(alert: BudgetAlert) {
+  switch (alert.level) {
+    case "OVER_BUDGET":
+      return "Le budget est dépassé.";
+    case "HUNDRED_PERCENT":
+      return "Le budget est entièrement consommé.";
+    case "EIGHTY_PERCENT":
+      return "Le budget approche de sa limite.";
+    case "FIFTY_PERCENT":
+      return "La moitié du budget est consommée.";
+  }
+}
+
+function getCurrentMonth() {
+  const now = new Date();
+
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function formatPercent(value: number) {
+  return Number.isInteger(value) ? String(value) : value.toFixed(1);
 }
