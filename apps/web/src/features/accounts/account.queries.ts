@@ -11,11 +11,24 @@ import {
   updateAccount,
 } from "./account.api";
 
+import {
+  cacheOfflineAccounts,
+} from "@/features/offline/offline-expense-db";
+
 export function useAccounts() {
   return useQuery({
     queryKey: ["accounts"],
 
-    queryFn: getAccounts,
+    queryFn: async () => {
+      const response =
+        await getAccounts();
+
+      await cacheOfflineAccounts(
+        response.data
+      );
+
+      return response;
+    },
   });
 }
 
