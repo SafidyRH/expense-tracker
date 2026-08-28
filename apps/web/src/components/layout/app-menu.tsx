@@ -30,6 +30,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 
+import { OfflineSyncStatus } from "@/components/pwa/offline-sync-status";
 import { Button } from "@/components/ui/button";
 
 import { authClient } from "@/lib/auth-client";
@@ -241,7 +242,9 @@ export function AppMenu() {
             ))}
           </div>
 
-          <div className="px-[18px] pb-[22px] pt-4">
+          <div className="space-y-3 px-[18px] pb-[22px] pt-4">
+            <OfflineSyncStatus variant="inline" />
+
             <div className="flex items-center gap-3">
               <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-xs font-medium text-white">
                 {initials}

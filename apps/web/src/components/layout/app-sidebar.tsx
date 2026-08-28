@@ -1,11 +1,14 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { usePathname } from "next/navigation";
 
-import { Settings } from "lucide-react";
+import { LogOut, Settings } from "lucide-react";
 
+import { OfflineSyncStatus } from "@/components/pwa/offline-sync-status";
 import { Button } from "@/components/ui/button";
+import { useLogout } from "@/features/auth/auth.mutations";
 import { authClient } from "@/lib/auth-client";
 import { cn } from "@/lib/utils";
 
@@ -13,7 +16,20 @@ import { navigationGroups } from "./navigation";
 
 export function AppSidebar() {
   const pathname = usePathname();
+  const router = useRouter();
+  const logoutMutation = useLogout();
   const { data: session } = authClient.useSession();
+
+  async function handleLogout() {
+    try {
+      await logoutMutation.mutateAsync();
+
+      router.replace("/login");
+      router.refresh();
+    } catch (error) {
+      console.error("Logout failed", error);
+    }
+  }
 
   const initials =
     session?.user.name
@@ -58,28 +74,43 @@ export function AppSidebar() {
         ))}
       </nav>
 
-      <div className="mt-6 flex items-center gap-3">
-        <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-neutral-950 text-xs font-semibold text-white">
-          {initials}
-        </div>
+      <div className="mt-6 space-y-3">
+        <OfflineSyncStatus variant="inline" />
 
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-[13px] font-medium">
-            {session?.user.name ?? "Profil"}
-          </p>
+        <div className="flex items-center gap-3">
+          <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-neutral-950 text-xs font-semibold text-white">
+            {initials}
+          </div>
 
-          <p className="truncate text-[11px] text-[#706c66]">
-            {session?.user.email ?? "principal"}
-          </p>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-[13px] font-medium">
+              {session?.user.name ?? "Profil"}
+            </p>
+
+            <p className="truncate text-[11px] text-[#706c66]">
+              {session?.user.email ?? "principal"}
+            </p>
+          </div>
+
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="size-10 shrink-0 rounded-full bg-white shadow-[0_6px_16px_rgba(0,0,0,0.08)] hover:bg-white"
+          >
+            <Settings className="size-4" />
+          </Button>
         </div>
 
         <Button
           type="button"
           variant="ghost"
-          size="icon"
-          className="size-10 shrink-0 rounded-full bg-white shadow-[0_6px_16px_rgba(0,0,0,0.08)] hover:bg-white"
+          className="w-full justify-start rounded-xl text-[#625f5a]"
+          disabled={logoutMutation.isPending}
+          onClick={handleLogout}
         >
-          <Settings className="size-4" />
+          <LogOut className="mr-2 size-4" />
+          {logoutMutation.isPending ? "Déconnexion..." : "Déconnexion"}
         </Button>
       </div>
     </aside>
