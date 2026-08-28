@@ -37,6 +37,14 @@ export default function AccountsPage() {
       0n
     );
 
+  const accountBalanceValues =
+    activeAccounts.map(
+      (account) =>
+        BigInt(
+          account.balanceMinor
+        )
+    );
+
   return (
     <main className="mx-auto max-w-[425px] space-y-[14px] lg:max-w-none lg:space-y-5">
       <section className="grid grid-cols-2 gap-[14px] lg:grid-cols-4 lg:gap-5">
@@ -55,9 +63,17 @@ export default function AccountsPage() {
             )}
           </p>
 
-          <p className="mt-auto text-[12px] leading-[18px] text-[#6f6b66]">
-            Tous les comptes actifs regroupés.
-          </p>
+          <div className="mt-auto space-y-3">
+            <AccountBalanceBars
+              values={
+                accountBalanceValues
+              }
+            />
+
+            <p className="text-[12px] leading-[18px] text-[#6f6b66]">
+              Tous les comptes actifs regroupés.
+            </p>
+          </div>
         </div>
 
         <div className="flex min-h-[154px] flex-col rounded-[24px] bg-white px-[17px] pb-[17px] pt-[16px] shadow-[0_1px_0_rgba(0,0,0,0.02)]">
@@ -178,5 +194,73 @@ export default function AccountsPage() {
         </div>
       )}
     </main>
+  );
+}
+
+function AccountBalanceBars({
+  values,
+}: {
+  values: bigint[];
+}) {
+  const chartValues =
+    values.length > 0
+      ? values
+      : [0n, 0n, 0n, 0n];
+
+  const max =
+    chartValues.reduce(
+      (largest, value) => {
+        const absoluteValue =
+          value < 0n
+            ? -value
+            : value;
+
+        return absoluteValue >
+          largest
+          ? absoluteValue
+          : largest;
+      },
+      0n
+    );
+
+  return (
+    <div className="flex h-[34px] items-end gap-[6px]">
+      {chartValues.map(
+        (value, index) => {
+          const absoluteValue =
+            value < 0n
+              ? -value
+              : value;
+
+          const height =
+            max === 0n
+              ? 22
+              : Math.max(
+                  Number(
+                    (absoluteValue *
+                      100n) /
+                      max
+                  ),
+                  14
+                );
+
+          return (
+            <span
+              key={index}
+              style={{
+                height: `${height}%`,
+              }}
+              className={`min-h-[6px] flex-1 rounded-full ${
+                max === 0n
+                  ? "bg-[#eeece8]"
+                  : value < 0n
+                    ? "bg-[#f14a38]"
+                    : "bg-[#32c96a]"
+              }`}
+            />
+          );
+        }
+      )}
+    </div>
   );
 }
