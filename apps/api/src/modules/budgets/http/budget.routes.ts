@@ -148,6 +148,36 @@ budgetRoutes.get(
       globalSpent._sum.amountMinor ??
       0n;
 
+    const allocatedCategoryAmountMinor =
+      categoryBudgets.reduce(
+        (total, budget) =>
+          total +
+          budget.amountMinor,
+        0n
+      );
+
+    const spentInCategoryBudgetsMinor =
+      categoryBudgets.reduce(
+        (total, budget) =>
+          total +
+          (spentByCategory.get(
+            budget.categoryId
+          ) ?? 0n),
+        0n
+      );
+
+    const spentOutsideCategoryBudgetsMinor =
+      spentMinor -
+      spentInCategoryBudgetsMinor;
+
+    const unallocatedAmountMinor =
+      globalAmount -
+      allocatedCategoryAmountMinor;
+
+    const currencyCode =
+      globalBudget?.currencyCode ??
+      "MGA";
+
     return c.json({
       data: {
         month,
@@ -163,9 +193,32 @@ budgetRoutes.get(
             spentMinor,
 
             currencyCode:
-              globalBudget?.currencyCode ??
-              "MGA",
+              currencyCode,
           }),
+
+        allocation: {
+          allocatedCategoryAmountMinor:
+            allocatedCategoryAmountMinor.toString(),
+
+          spentInCategoryBudgetsMinor:
+            spentInCategoryBudgetsMinor.toString(),
+
+          spentOutsideCategoryBudgetsMinor:
+            spentOutsideCategoryBudgetsMinor.toString(),
+
+          unallocated:
+            toBudgetProgress({
+              id: null,
+
+              amountMinor:
+                unallocatedAmountMinor,
+
+              spentMinor:
+                spentOutsideCategoryBudgetsMinor,
+
+              currencyCode,
+            }),
+        },
 
         categories:
           categoryBudgets.map(
@@ -224,6 +277,43 @@ budgetRoutes.put(
     const range =
       getMonthRange(input.month);
 
+    const amountMinor =
+      BigInt(input.amountMinor);
+
+    const categoryBudgetTotal =
+      await prisma.monthlyCategoryBudget.aggregate({
+        where: {
+          userId:
+            session!.user.id,
+
+          month:
+            range.start,
+        },
+
+        _sum: {
+          amountMinor: true,
+        },
+      });
+
+    const allocatedMinor =
+      categoryBudgetTotal._sum.amountMinor ??
+      0n;
+
+    if (allocatedMinor > amountMinor) {
+      return c.json(
+        {
+          error: {
+            code:
+              "GLOBAL_BUDGET_TOO_LOW",
+
+            message:
+              "Le budget mensuel ne peut pas être inférieur aux enveloppes déjà allouées.",
+          },
+        },
+        409
+      );
+    }
+
     const budget =
       await prisma.monthlyGlobalBudget.upsert({
         where: {
@@ -238,9 +328,7 @@ budgetRoutes.put(
 
         update: {
           amountMinor:
-            BigInt(
-              input.amountMinor
-            ),
+            amountMinor,
 
           currencyCode:
             input.currencyCode,
@@ -254,9 +342,7 @@ budgetRoutes.put(
             range.start,
 
           amountMinor:
-            BigInt(
-              input.amountMinor
-            ),
+            amountMinor,
 
           currencyCode:
             input.currencyCode,
@@ -332,6 +418,82 @@ budgetRoutes.put(
     const range =
       getMonthRange(input.month);
 
+    const amountMinor =
+      BigInt(input.amountMinor);
+
+    const [
+      globalBudget,
+      otherCategoryBudgets,
+    ] = await Promise.all([
+      prisma.monthlyGlobalBudget.findUnique({
+        where: {
+          userId_month: {
+            userId:
+              session!.user.id,
+
+            month:
+              range.start,
+          },
+        },
+      }),
+
+      prisma.monthlyCategoryBudget.aggregate({
+        where: {
+          userId:
+            session!.user.id,
+
+          month:
+            range.start,
+
+          categoryId: {
+            not: categoryId,
+          },
+        },
+
+        _sum: {
+          amountMinor: true,
+        },
+      }),
+    ]);
+
+    if (!globalBudget) {
+      return c.json(
+        {
+          error: {
+            code:
+              "GLOBAL_BUDGET_REQUIRED",
+
+            message:
+              "Définissez d'abord le budget mensuel avant d'allouer une catégorie.",
+          },
+        },
+        409
+      );
+    }
+
+    const allocatedMinor =
+      (otherCategoryBudgets._sum
+        .amountMinor ?? 0n) +
+      amountMinor;
+
+    if (
+      allocatedMinor >
+      globalBudget.amountMinor
+    ) {
+      return c.json(
+        {
+          error: {
+            code:
+              "CATEGORY_BUDGET_EXCEEDS_GLOBAL",
+
+            message:
+              "La somme des enveloppes catégorie ne peut pas dépasser le budget mensuel.",
+          },
+        },
+        409
+      );
+    }
+
     const budget =
       await prisma.monthlyCategoryBudget.upsert({
         where: {
@@ -348,9 +510,7 @@ budgetRoutes.put(
 
         update: {
           amountMinor:
-            BigInt(
-              input.amountMinor
-            ),
+            amountMinor,
 
           currencyCode:
             input.currencyCode,
@@ -366,9 +526,7 @@ budgetRoutes.put(
             range.start,
 
           amountMinor:
-            BigInt(
-              input.amountMinor
-            ),
+            amountMinor,
 
           currencyCode:
             input.currencyCode,
@@ -535,8 +693,64 @@ function toBudgetProgress({
 
     percentConsumed,
 
+    alert:
+      toBudgetAlert({
+        amountMinor,
+        percentConsumed,
+      }),
+
     currencyCode,
   };
+}
+
+function toBudgetAlert({
+  amountMinor,
+  percentConsumed,
+}: {
+  amountMinor: bigint;
+  percentConsumed: number;
+}) {
+  if (amountMinor <= 0n) {
+    return null;
+  }
+
+  if (percentConsumed > 100) {
+    return {
+      level: "OVER_BUDGET",
+      threshold: 100,
+      severity: "critical",
+      label: "Dépassement",
+    };
+  }
+
+  if (percentConsumed >= 100) {
+    return {
+      level: "HUNDRED_PERCENT",
+      threshold: 100,
+      severity: "danger",
+      label: "100 %",
+    };
+  }
+
+  if (percentConsumed >= 80) {
+    return {
+      level: "EIGHTY_PERCENT",
+      threshold: 80,
+      severity: "warning",
+      label: "80 %",
+    };
+  }
+
+  if (percentConsumed >= 50) {
+    return {
+      level: "FIFTY_PERCENT",
+      threshold: 50,
+      severity: "info",
+      label: "50 %",
+    };
+  }
+
+  return null;
 }
 
 function formatBudgetMonth(

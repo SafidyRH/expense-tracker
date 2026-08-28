@@ -7,7 +7,27 @@ export interface BudgetProgress {
 
   percentConsumed: number;
 
+  alert: BudgetAlert | null;
+
   currencyCode: string;
+}
+
+export interface BudgetAlert {
+  level:
+    | "FIFTY_PERCENT"
+    | "EIGHTY_PERCENT"
+    | "HUNDRED_PERCENT"
+    | "OVER_BUDGET";
+
+  threshold: 50 | 80 | 100;
+
+  severity:
+    | "info"
+    | "warning"
+    | "danger"
+    | "critical";
+
+  label: string;
 }
 
 export interface CategoryBudgetProgress
@@ -24,7 +44,19 @@ export interface BudgetOverview {
 
   global: BudgetProgress;
 
+  allocation: BudgetAllocation;
+
   categories: CategoryBudgetProgress[];
+}
+
+export interface BudgetAllocation {
+  allocatedCategoryAmountMinor: string;
+
+  spentInCategoryBudgetsMinor: string;
+
+  spentOutsideCategoryBudgetsMinor: string;
+
+  unallocated: BudgetProgress;
 }
 
 export interface BudgetOverviewResponse {
