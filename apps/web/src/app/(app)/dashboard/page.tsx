@@ -16,11 +16,24 @@ import {
 } from "@/features/accounts/account.queries";
 
 import {
+  useBudgetOverview,
+} from "@/features/budgets/budget.queries";
+
+import {
   useTransactions,
 } from "@/features/transactions/transaction.queries";
 
+import type {
+  BudgetAlert,
+} from "@/features/budgets/budget.types";
+
+import type {
+  Transaction,
+} from "@/features/transactions/transaction.types";
+
 import {
   getExpenseAmount,
+  getTransactionAmount,
 } from "@/features/transactions/transaction.utils";
 
 import {
@@ -42,6 +55,11 @@ export default function DashboardPage() {
 
   const weekRange =
     getLastSevenDaysRange();
+
+  const budgetOverview =
+    useBudgetOverview(
+      getCurrentBudgetMonth()
+    );
 
   const accounts =
     useAccounts();
@@ -133,6 +151,42 @@ export default function DashboardPage() {
     weeklyTransactions.data?.data
       .length ?? 0;
 
+  const globalBudget =
+    budgetOverview.data?.data.global;
+
+  const budgetAmount =
+    globalBudget?.amountMinor ??
+    "0";
+
+  const budgetSpent =
+    globalBudget?.spentMinor ??
+    monthlySpent.toString();
+
+  const budgetRemaining =
+    globalBudget?.remainingMinor ??
+    totalBalance.toString();
+
+  const budgetPercent =
+    globalBudget?.percentConsumed ??
+    0;
+
+  const balanceSeries =
+    buildBalanceSeries(
+      weeklyTransactions.data?.data ??
+        [],
+      totalBalance
+    );
+
+  const coveragePercent =
+    weeklyTransactionCount > 0
+      ? Math.min(
+          (weeklyExpenses.length /
+            weeklyTransactionCount) *
+            100,
+          100
+        )
+      : 0;
+
   const weekFrom =
     formatShortDate(
       weekRange.from
@@ -155,7 +209,9 @@ export default function DashboardPage() {
             totalBalance
           )}
         >
-          <BalanceMiniChart />
+          <BalanceMiniChart
+            values={balanceSeries}
+          />
         </DashboardCard>
 
         <DashboardCard
@@ -164,20 +220,31 @@ export default function DashboardPage() {
           }
           label="Budget"
           value={formatMoney(
-            totalBalance
+            budgetRemaining
           )}
           subtitle="Restant"
         >
           <div className="space-y-[12px]">
-            <div className="h-[13px] overflow-hidden rounded-full bg-[#eeece8]">
-              <div className="h-full w-[48%] rounded-full bg-[#32c96a]" />
-            </div>
+            <BudgetProgressLine
+              percent={budgetPercent}
+            />
+
+            {globalBudget?.alert && (
+              <BudgetAlertPill
+                alert={
+                  globalBudget.alert
+                }
+              />
+            )}
 
             <p className="text-[12px] leading-[18px] text-[#6f6b66]">
               {formatMoney(
-                monthlySpent
+                budgetSpent
               )}{" "}
-              dépensé ce mois
+              dépensé sur{" "}
+              {formatMoney(
+                budgetAmount
+              )}
             </p>
           </div>
         </DashboardCard>
@@ -225,7 +292,11 @@ export default function DashboardPage() {
           value={`${weeklyTransactionCount} jours`}
         >
           <div className="space-y-[13px]">
-            <CoverageBar />
+            <CoverageBar
+              percent={
+                coveragePercent
+              }
+            />
 
             <p className="text-[12px] leading-[17px] text-[#6f6b66]">
               Obligations couvertes cette semaine
@@ -414,7 +485,73 @@ function DashboardCard({
   );
 }
 
-function BalanceMiniChart() {
+function BudgetProgressLine({
+  percent,
+}: {
+  percent: number;
+}) {
+  const width =
+    clampPercent(percent);
+
+  return (
+    <div className="h-[13px] overflow-hidden rounded-full bg-[#eeece8]">
+      <div
+        style={{
+          width: `${width}%`,
+        }}
+        className={`h-full rounded-full ${
+          percent > 100
+            ? "bg-[#f14a38]"
+            : "bg-[#32c96a]"
+        }`}
+      />
+    </div>
+  );
+}
+
+function BudgetAlertPill({
+  alert,
+}: {
+  alert: BudgetAlert;
+}) {
+  return (
+    <span
+      className={`inline-flex h-7 w-fit items-center rounded-full px-3 text-[11px] font-semibold ${
+        alert.severity ===
+        "critical"
+          ? "bg-[#f14a38] text-white"
+          : alert.severity ===
+              "danger"
+            ? "bg-[#ffe0dc] text-[#9f2419]"
+            : alert.severity ===
+                "warning"
+              ? "bg-[#ffe884] text-[#665000]"
+              : "bg-[#dff1fb] text-[#145f83]"
+      }`}
+    >
+      {alert.label}
+    </span>
+  );
+}
+
+function BalanceMiniChart({
+  values,
+}: {
+  values: bigint[];
+}) {
+  const points =
+    buildChartPoints(values);
+
+  const linePath =
+    points
+      .map(
+        (point, index) =>
+          `${index === 0 ? "M" : "L"}${point.x} ${point.y}`
+      )
+      .join(" ");
+
+  const areaPath = `${linePath} L210 88 L0 88 Z`;
+
   return (
     <div className="-mx-[17px] -mb-[17px] mt-auto h-[88px] overflow-hidden rounded-b-[24px]">
       <svg
@@ -424,11 +561,11 @@ function BalanceMiniChart() {
         aria-hidden="true"
       >
         <path
-          d="M0 35 C18 46 37 43 55 48 C72 53 79 50 88 66 C96 82 110 78 123 82 C138 86 129 42 148 49 C163 54 172 63 188 58 C202 53 193 11 210 20 L210 88 L0 88 Z"
+          d={areaPath}
           fill="#e0f0fb"
         />
         <path
-          d="M0 35 C18 46 37 43 55 48 C72 53 79 50 88 66 C96 82 110 78 123 82 C138 86 129 42 148 49 C163 54 172 63 188 58 C202 53 193 11 210 20"
+          d={linePath}
           fill="none"
           stroke="#1681b5"
           strokeLinecap="round"
@@ -439,16 +576,199 @@ function BalanceMiniChart() {
   );
 }
 
-function CoverageBar() {
+function CoverageBar({
+  percent,
+}: {
+  percent: number;
+}) {
+  const position =
+    clampPercent(percent);
+
   return (
     <div className="relative h-[13px]">
       <div className="absolute inset-x-0 top-1/2 h-[6px] -translate-y-1/2 overflow-hidden rounded-full bg-[#efede9]">
         <div className="h-full rounded-full bg-[linear-gradient(90deg,#f14a38_0%,#ffc916_48%,#89d548_72%,#2dc46b_100%)]" />
       </div>
 
-      <span className="absolute left-[54%] top-1/2 size-[13px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#e6ea50] shadow-[0_0_0_2px_rgba(255,255,255,0.55)]" />
+      <span
+        style={{
+          left: `${position}%`,
+        }}
+        className="absolute top-1/2 size-[13px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#e6ea50] shadow-[0_0_0_2px_rgba(255,255,255,0.55)]"
+      />
     </div>
   );
+}
+
+function buildBalanceSeries(
+  transactions: Transaction[],
+  currentBalance: bigint
+) {
+  const movements =
+    transactions
+      .map((transaction) => ({
+        occurredAt:
+          new Date(
+            transaction.occurredAt
+          ).getTime(),
+        amount:
+          getTransactionAmount(
+            transaction
+          ),
+      }))
+      .filter(
+        (movement) =>
+          movement.amount !== 0n
+      )
+      .sort(
+        (first, second) =>
+          first.occurredAt -
+          second.occurredAt
+      );
+
+  if (movements.length === 0) {
+    return buildCalmBalanceSeries(
+      currentBalance
+    );
+  }
+
+  const totalMovement =
+    movements.reduce(
+      (total, movement) =>
+        total + movement.amount,
+      0n
+    );
+
+  let runningBalance =
+    currentBalance -
+    totalMovement;
+
+  const series = [
+    runningBalance,
+  ];
+
+  for (const movement of movements) {
+    runningBalance +=
+      movement.amount;
+
+    series.push(runningBalance);
+  }
+
+  return addVisualBreathingRoom(
+    series
+  );
+}
+
+function buildCalmBalanceSeries(
+  currentBalance: bigint
+) {
+  return [
+    currentBalance,
+    currentBalance,
+  ];
+}
+
+function addVisualBreathingRoom(
+  values: bigint[]
+) {
+  if (values.length >= 4) {
+    return values;
+  }
+
+  const first =
+    values[0] ?? 0n;
+
+  const last =
+    values[values.length - 1] ??
+    first;
+
+  const midpoint =
+    first + (last - first) / 2n;
+
+  return [
+    first,
+    midpoint,
+    ...values.slice(1),
+  ];
+}
+
+function buildChartPoints(
+  values: bigint[]
+) {
+  const chartValues =
+    values.length >= 2
+      ? values
+      : [0n, 0n];
+
+  const numericValues =
+    chartValues.map(Number);
+
+  const min =
+    Math.min(...numericValues);
+
+  const max =
+    Math.max(...numericValues);
+
+  const range =
+    max - min;
+
+  const width = 210;
+  const height = 88;
+  const topPadding = 10;
+  const bottomPadding = 12;
+  const drawableHeight =
+    height -
+    topPadding -
+    bottomPadding;
+
+  return numericValues.map(
+    (value, index) => {
+      const x =
+        chartValues.length === 1
+          ? width / 2
+          : (index /
+              (chartValues.length -
+                1)) *
+            width;
+
+      const normalized =
+        range === 0
+          ? 0.5
+          : (value - min) / range;
+
+      const y =
+        topPadding +
+        (1 - normalized) *
+          drawableHeight;
+
+      return {
+        x: Number(
+          x.toFixed(2)
+        ),
+        y: Number(
+          y.toFixed(2)
+        ),
+      };
+    }
+  );
+}
+
+function clampPercent(
+  value: number
+) {
+  return Math.min(
+    Math.max(value, 0),
+    100
+  );
+}
+
+function getCurrentBudgetMonth() {
+  const now =
+    new Date();
+
+  return `${now.getFullYear()}-${String(
+    now.getMonth() + 1
+  ).padStart(2, "0")}`;
 }
 
 function formatShortDate(value: string) {
