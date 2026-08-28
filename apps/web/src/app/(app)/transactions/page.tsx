@@ -181,6 +181,11 @@ export default function TransactionsPage() {
       0n
     );
 
+  const activitySeries =
+    buildTransactionActivitySeries(
+      items
+    );
+
   function resetFilters() {
     setType("ALL");
     setAccountId("ALL");
@@ -199,7 +204,11 @@ export default function TransactionsPage() {
           label="Historique"
           value={`${items.length}`}
           subtitle="Transactions chargées"
-        />
+        >
+          <TransactionActivityBars
+            values={activitySeries}
+          />
+        </SummaryCard>
 
         <SummaryCard
           icon={
@@ -526,11 +535,13 @@ function SummaryCard({
   label,
   value,
   subtitle,
+  children,
 }: {
   icon: React.ReactNode;
   label: string;
   value: string;
   subtitle: string;
+  children?: React.ReactNode;
 }) {
   return (
     <div className="flex min-h-[154px] flex-col rounded-[24px] bg-white px-[17px] pb-[17px] pt-[16px] shadow-[0_1px_0_rgba(0,0,0,0.02)]">
@@ -546,11 +557,156 @@ function SummaryCard({
         {value}
       </p>
 
-      <p className="mt-auto text-[12px] leading-[18px] text-[#6f6b66]">
-        {subtitle}
-      </p>
+      <div className="mt-auto space-y-3">
+        {children}
+
+        <p className="text-[12px] leading-[18px] text-[#6f6b66]">
+          {subtitle}
+        </p>
+      </div>
     </div>
   );
+}
+
+function TransactionActivityBars({
+  values,
+}: {
+  values: bigint[];
+}) {
+  const max =
+    values.reduce(
+      (largest, value) =>
+        value > largest
+          ? value
+          : largest,
+      0n
+    );
+
+  return (
+    <div className="flex h-[32px] items-end gap-[5px]">
+      {values.map(
+        (value, index) => {
+          const height =
+            max === 0n
+              ? 18
+              : Math.max(
+                  Number(
+                    (value * 100n) /
+                      max
+                  ),
+                  12
+                );
+
+          return (
+            <span
+              key={index}
+              style={{
+                height: `${height}%`,
+              }}
+              className={`min-h-[5px] flex-1 rounded-full ${
+                value > 0n
+                  ? "bg-[#1681b5]"
+                  : "bg-[#eeece8]"
+              }`}
+            />
+          );
+        }
+      )}
+    </div>
+  );
+}
+
+function buildTransactionActivitySeries(
+  transactions: Transaction[]
+) {
+  const latestDate =
+    transactions.reduce<Date | null>(
+      (latest, transaction) => {
+        const occurredAt =
+          new Date(
+            transaction.occurredAt
+          );
+
+        occurredAt.setHours(
+          0,
+          0,
+          0,
+          0
+        );
+
+        if (
+          !latest ||
+          occurredAt.getTime() >
+            latest.getTime()
+        ) {
+          return occurredAt;
+        }
+
+        return latest;
+      },
+      null
+    );
+
+  const days =
+    Array.from(
+      {
+        length: 7,
+      },
+      (_, index) => {
+        const date =
+          latestDate
+            ? new Date(latestDate)
+            : new Date();
+
+        date.setHours(
+          0,
+          0,
+          0,
+          0
+        );
+        date.setDate(
+          date.getDate() -
+            (6 - index)
+        );
+
+        return date;
+      }
+    );
+
+  const totals =
+    days.map(() => 0n);
+
+  for (const transaction of transactions) {
+    const occurredAt =
+      new Date(
+        transaction.occurredAt
+      );
+
+    occurredAt.setHours(
+      0,
+      0,
+      0,
+      0
+    );
+
+    const index =
+      days.findIndex(
+        (day) =>
+          day.getTime() ===
+          occurredAt.getTime()
+      );
+
+    if (index === -1) {
+      continue;
+    }
+
+    totals[index] +=
+      getTransactionMagnitude(
+        transaction
+      );
+  }
+
+  return totals;
 }
 
 function TransactionDetailDialog({
@@ -758,6 +914,30 @@ function getTransactionTotal(
     (total, entry) =>
       total +
       BigInt(entry.amountMinor),
+    0n
+  );
+}
+
+function getTransactionMagnitude(
+  transaction: Transaction
+) {
+  return transaction.entries.reduce(
+    (largest, entry) => {
+      const amount =
+        BigInt(
+          entry.amountMinor
+        );
+
+      const absoluteAmount =
+        amount < 0n
+          ? -amount
+          : amount;
+
+      return absoluteAmount >
+        largest
+        ? absoluteAmount
+        : largest;
+    },
     0n
   );
 }
