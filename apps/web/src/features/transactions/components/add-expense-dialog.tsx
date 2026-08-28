@@ -2,6 +2,7 @@
 
 import {
   FormEvent,
+  useEffect,
   useState,
 } from "react";
 
@@ -53,6 +54,19 @@ import {
 import {
   useCategories,
 } from "@/features/categories/category.queries";
+
+import type {
+  Category,
+} from "@/features/categories/category.types";
+
+import {
+  getCachedOfflineAccounts,
+  getCachedOfflineCategories,
+} from "@/features/offline/offline-expense-db";
+
+import type {
+  FinancialAccount,
+} from "@/features/accounts/account.types";
 
 import {
   useCreateExpense,
@@ -138,6 +152,23 @@ export function AddTransactionDialog() {
     string | null
   >(null);
 
+  const [
+    cachedAccounts,
+    setCachedAccounts,
+  ] = useState<
+    FinancialAccount[]
+  >([]);
+
+  const [
+    cachedExpenseCategories,
+    setCachedExpenseCategories,
+  ] = useState<Category[]>([]);
+
+  const [
+    cachedIncomeCategories,
+    setCachedIncomeCategories,
+  ] = useState<Category[]>([]);
+
   const accounts =
     useAccounts();
 
@@ -165,10 +196,46 @@ export function AddTransactionDialog() {
       ? incomeCategories
       : expenseCategories;
 
+  const accountOptions =
+    accounts.data?.data ??
+    cachedAccounts;
+
+  const categoryOptions =
+    categories.data?.data ??
+    (mode === "INCOME"
+      ? cachedIncomeCategories
+      : cachedExpenseCategories);
+
   const pending =
     createExpense.isPending ||
     createIncome.isPending ||
     createTransfer.isPending;
+
+  useEffect(() => {
+    const timeout =
+      window.setTimeout(() => {
+        void Promise.all([
+          getCachedOfflineAccounts().then(
+            setCachedAccounts
+          ),
+          getCachedOfflineCategories(
+            "EXPENSE"
+          ).then(
+            setCachedExpenseCategories
+          ),
+          getCachedOfflineCategories(
+            "INCOME"
+          ).then(
+            setCachedIncomeCategories
+          ),
+        ]);
+      }, 0);
+
+    return () =>
+      window.clearTimeout(
+        timeout
+      );
+  }, []);
 
   function resetForm() {
     setMode("EXPENSE");
@@ -418,7 +485,7 @@ export function AddTransactionDialog() {
               </SelectTrigger>
 
               <SelectContent>
-                {accounts.data?.data.map(
+                {accountOptions.map(
                   (
                     account
                   ) => (
@@ -460,7 +527,7 @@ export function AddTransactionDialog() {
                 </SelectTrigger>
 
                 <SelectContent>
-                  {accounts.data?.data.map(
+                  {accountOptions.map(
                     (
                       account
                     ) => (
@@ -505,7 +572,7 @@ export function AddTransactionDialog() {
                 </SelectTrigger>
 
                 <SelectContent>
-                  {categories.data?.data.map(
+                  {categoryOptions.map(
                     (
                       category
                     ) => (
