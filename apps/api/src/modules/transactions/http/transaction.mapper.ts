@@ -109,6 +109,12 @@ export function toTransactionHistoryDto(
 
             name:
               allocation.categoryName,
+
+            icon:
+              allocation.categoryIcon,
+
+            systemKey:
+              allocation.categorySystemKey,
           },
 
           amountMinor:

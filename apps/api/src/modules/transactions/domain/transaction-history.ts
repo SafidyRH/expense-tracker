@@ -50,6 +50,8 @@ export interface TransactionHistoryAllocation {
 
   categoryId: string;
   categoryName: string;
+  categoryIcon: string | null;
+  categorySystemKey: string | null;
 
   amountMinor: bigint;
 }

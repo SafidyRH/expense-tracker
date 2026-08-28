@@ -41,6 +41,8 @@ const transactionHistoryInclude = {
         select: {
           id: true,
           name: true,
+          icon: true,
+          systemKey: true,
         },
       },
     },
@@ -988,6 +990,14 @@ export class PrismaTransactionRepository
               categoryName:
                 allocation.category
                   .name,
+
+              categoryIcon:
+                allocation.category
+                  .icon,
+
+              categorySystemKey:
+                allocation.category
+                  .systemKey,
 
               amountMinor:
                 allocation.amountMinor,
