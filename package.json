@@ -15,7 +15,14 @@
 
     "db:generate": "pnpm --dir packages/database exec prisma generate",
     "db:migrate": "pnpm --dir packages/database exec prisma migrate dev",
-    "db:studio": "pnpm --dir packages/database exec prisma studio"
+    "db:studio": "pnpm --dir packages/database exec prisma studio",
+    "db:test:migrate": "dotenv -e ../../apps/api/.env.test -- prisma migrate deploy",
+
+    "test:db:up": "docker compose -f compose.test.yaml up -d --wait",
+    "test:db:down": "docker compose -f compose.test.yaml down -v",
+    "test:db:migrate": "pnpm -C ./packages/database run db:test:migrate",
+    "test:api:unit": "pnpm --dir apps/api test:unit",
+    "test:api:integration": "pnpm --dir apps/api exec vitest run --config vitest.integration.config.ts"
   },
   "keywords": [],
   "author": "",
