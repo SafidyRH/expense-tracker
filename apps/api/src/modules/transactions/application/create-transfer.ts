@@ -14,6 +14,15 @@ export class CreateTransfer {
   execute(
     input: CreateTransferInput
   ) {
+    if (
+      input.fromAccountId ===
+      input.toAccountId
+    ) {
+      throw new Error(
+        "Transfer accounts must be different"
+      );
+    }
+
     return this.repository.createTransfer(
       input
     );
