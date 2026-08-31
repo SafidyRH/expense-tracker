@@ -7,7 +7,7 @@ import {
 import {
   decodeTransactionCursor,
   encodeTransactionCursor,
-} from "./transaction-cursor.js";
+} from "../application/transaction-cursor.js";
 
 describe("transaction cursor", () => {
   it("encodes and decodes a transaction cursor", () => {

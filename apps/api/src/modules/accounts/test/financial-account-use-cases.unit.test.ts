@@ -7,19 +7,19 @@ import {
 
 import {
   ArchiveFinancialAccount,
-} from "./archive-financial-account.js";
+} from "../application/archive-financial-account.js";
 import {
   CreateFinancialAccount,
-} from "./create-financial-account.js";
+} from "../application/create-financial-account.js";
 import {
   GetFinancialAccount,
-} from "./get-financial-account.js";
+} from "../application/get-financial-account.js";
 import {
   ListFinancialAccounts,
-} from "./list-financial-accounts.js";
+} from "../application/list-financial-accounts.js";
 import {
   UpdateFinancialAccount,
-} from "./update-financial-account.js";
+} from "../application/update-financial-account.js";
 
 import type {
   CreateFinancialAccountInput,
@@ -31,7 +31,8 @@ import type {
 } from "../domain/financial-account.repository.js";
 
 describe("financial account use cases", () => {
-  const now = new Date("2026-01-15T10:00:00.000Z");
+  const now =
+    new Date("2026-01-15T10:00:00.000Z");
 
   function createAccount(
     overrides: Partial<FinancialAccount> = {}
@@ -63,7 +64,9 @@ describe("financial account use cases", () => {
       findAllByUserId: vi.fn(async () => [
         account,
       ]),
-      findByIdAndUserId: vi.fn(async () => account),
+      findByIdAndUserId: vi.fn(
+        async () => account
+      ),
       update: vi.fn(
         async (
           _id: string,
@@ -83,7 +86,6 @@ describe("financial account use cases", () => {
     const repository = createRepository();
     const useCase =
       new CreateFinancialAccount(repository);
-
     const input: CreateFinancialAccountInput = {
       userId: "user-1",
       name: "Main bank",
@@ -99,19 +101,13 @@ describe("financial account use cases", () => {
     expect(repository.create).toHaveBeenCalledWith(
       input
     );
-    expect(result).toMatchObject({
-      userId: "user-1",
-      name: "Main bank",
-      type: "BANK",
-      institutionName: "BNI",
-      currencyCode: "MGA",
-      initialBalanceMinor: 50_000n,
-    });
+    expect(result).toMatchObject(input);
   });
 
   it("lists user accounts through the repository", async () => {
     const account = createAccount();
-    const repository = createRepository(account);
+    const repository =
+      createRepository(account);
     const useCase =
       new ListFinancialAccounts(repository);
 
@@ -128,7 +124,8 @@ describe("financial account use cases", () => {
     const account = createAccount({
       id: "account-2",
     });
-    const repository = createRepository(account);
+    const repository =
+      createRepository(account);
     const useCase =
       new GetFinancialAccount(repository);
 
@@ -138,7 +135,10 @@ describe("financial account use cases", () => {
 
     expect(
       repository.findByIdAndUserId
-    ).toHaveBeenCalledWith("account-2", "user-1");
+    ).toHaveBeenCalledWith(
+      "account-2",
+      "user-1"
+    );
   });
 
   it("updates an account through the repository", async () => {
@@ -161,10 +161,7 @@ describe("financial account use cases", () => {
       "user-1",
       input
     );
-    expect(result).toMatchObject({
-      name: "Updated cash",
-      institutionName: null,
-    });
+    expect(result).toMatchObject(input);
   });
 
   it("archives an account through the repository", async () => {

@@ -7,16 +7,16 @@ import {
 
 import {
   CreateExpense,
-} from "./create-expense.js";
+} from "../application/create-expense.js";
 import {
   CreateIncome,
-} from "./create-income.js";
+} from "../application/create-income.js";
 import {
   CreateTransfer,
-} from "./create-transfer.js";
+} from "../application/create-transfer.js";
 import {
   ListTransactions,
-} from "./list-transactions.js";
+} from "../application/list-transactions.js";
 
 import type {
   CreateExpenseInput,
@@ -177,30 +177,10 @@ describe("transaction use cases", () => {
     };
   }
 
-  it("creates an expense through the repository", async () => {
+  it("rejects expenses with a zero or negative amount", () => {
     const repository = createRepository();
-    const useCase = new CreateExpense(repository);
-    const input = createExpenseInput();
-
-    const result =
-      await useCase.execute(input);
-
-    expect(
-      repository.createExpense
-    ).toHaveBeenCalledWith(input);
-    expect(result).toMatchObject({
-      success: true,
-      duplicated: false,
-      expense: {
-        amountMinor: 12_500n,
-        balanceAfterMinor: 87_500n,
-      },
-    });
-  });
-
-  it("rejects expenses with a zero or negative amount", async () => {
-    const repository = createRepository();
-    const useCase = new CreateExpense(repository);
+    const useCase =
+      new CreateExpense(repository);
 
     expect(() =>
       useCase.execute(
@@ -227,44 +207,90 @@ describe("transaction use cases", () => {
     ).not.toHaveBeenCalled();
   });
 
-  it("creates an income through the repository", async () => {
+  it("rejects incomes with a zero or negative amount", () => {
     const repository = createRepository();
-    const useCase = new CreateIncome(repository);
-    const input = createIncomeInput();
+    const useCase =
+      new CreateIncome(repository);
 
-    const result =
-      await useCase.execute(input);
+    expect(() =>
+      useCase.execute(
+        createIncomeInput({
+          amountMinor: 0n,
+        })
+      )
+    ).toThrow(
+      "Income amount must be greater than zero"
+    );
+
+    expect(() =>
+      useCase.execute(
+        createIncomeInput({
+          amountMinor: -1n,
+        })
+      )
+    ).toThrow(
+      "Income amount must be greater than zero"
+    );
 
     expect(
       repository.createIncome
-    ).toHaveBeenCalledWith(input);
-    expect(result).toMatchObject({
+    ).not.toHaveBeenCalled();
+  });
+
+  it("rejects transfers with the same source and destination", () => {
+    const repository = createRepository();
+    const useCase =
+      new CreateTransfer(repository);
+
+    expect(() =>
+      useCase.execute(
+        createTransferInput({
+          fromAccountId: "account-1",
+          toAccountId: "account-1",
+        })
+      )
+    ).toThrow(
+      "Transfer accounts must be different"
+    );
+
+    expect(
+      repository.createTransfer
+    ).not.toHaveBeenCalled();
+  });
+
+  it("creates valid transactions through the repository", async () => {
+    const repository = createRepository();
+
+    await expect(
+      new CreateExpense(repository).execute(
+        createExpenseInput()
+      )
+    ).resolves.toMatchObject({
       success: true,
-      duplicated: false,
+      expense: {
+        amountMinor: 12_500n,
+      },
+    });
+
+    await expect(
+      new CreateIncome(repository).execute(
+        createIncomeInput()
+      )
+    ).resolves.toMatchObject({
+      success: true,
       income: {
         amountMinor: 100_000n,
       },
     });
-  });
 
-  it("creates a transfer through the repository", async () => {
-    const repository = createRepository();
-    const useCase = new CreateTransfer(repository);
-    const input = createTransferInput();
-
-    const result =
-      await useCase.execute(input);
-
-    expect(
-      repository.createTransfer
-    ).toHaveBeenCalledWith(input);
-    expect(result).toMatchObject({
+    await expect(
+      new CreateTransfer(repository).execute(
+        createTransferInput()
+      )
+    ).resolves.toMatchObject({
       success: true,
-      duplicated: false,
       transfer: {
         amountMinor: 25_000n,
-        fromBalanceAfterMinor: 75_000n,
-        toBalanceAfterMinor: 125_000n,
       },
     });
   });

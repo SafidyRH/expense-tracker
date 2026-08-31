@@ -7,16 +7,16 @@ import {
 
 import {
   ArchiveCategory,
-} from "./archive-category.js";
+} from "../application/archive-category.js";
 import {
   CreateCategory,
-} from "./create-category.js";
+} from "../application/create-category.js";
 import {
   ListCategories,
-} from "./list-category.js";
+} from "../application/list-category.js";
 import {
   UpdateCategory,
-} from "./update-category.js";
+} from "../application/update-category.js";
 
 import type {
   Category,
@@ -28,7 +28,8 @@ import type {
 } from "../domain/category.repository.js";
 
 describe("category use cases", () => {
-  const now = new Date("2026-01-15T10:00:00.000Z");
+  const now =
+    new Date("2026-01-15T10:00:00.000Z");
 
   function createCategoryRecord(
     overrides: Partial<Category> = {}
@@ -82,7 +83,6 @@ describe("category use cases", () => {
     const repository = createRepository();
     const useCase =
       new CreateCategory(repository);
-
     const input: CreateCategoryInput = {
       userId: "user-1",
       name: "Salary",
@@ -96,17 +96,13 @@ describe("category use cases", () => {
     expect(repository.create).toHaveBeenCalledWith(
       input
     );
-    expect(result).toMatchObject({
-      userId: "user-1",
-      name: "Salary",
-      type: "INCOME",
-      icon: "wallet",
-    });
+    expect(result).toMatchObject(input);
   });
 
   it("lists available categories for a user and optional type", async () => {
     const category = createCategoryRecord();
-    const repository = createRepository(category);
+    const repository =
+      createRepository(category);
     const useCase =
       new ListCategories(repository);
 
