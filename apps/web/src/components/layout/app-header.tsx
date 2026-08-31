@@ -1,8 +1,5 @@
 "use client";
 
-import { CircleUserRound, Layers3 } from "lucide-react";
-
-import { Button } from "@/components/ui/button";
 import { formatMonthYear } from "@/lib/date";
 
 import { AppMenu } from "./app-menu";
@@ -24,7 +21,7 @@ export function AppHeader() {
         </div>
       </div>
 
-      <div className="flex items-center gap-2">
+      {/* <div className="flex items-center gap-2">
         <Button
           type="button"
           variant="ghost"
@@ -42,7 +39,7 @@ export function AppHeader() {
         >
           <Layers3 className="size-[18px]" />
         </Button>
-      </div>
+      </div> */}
     </header>
   );
 }

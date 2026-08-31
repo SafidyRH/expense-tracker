@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { usePathname } from "next/navigation";
 
-import { LogOut, Settings } from "lucide-react";
+import { LogOut } from "lucide-react";
 
 import { OfflineSyncStatus } from "@/components/pwa/offline-sync-status";
 import { Button } from "@/components/ui/button";
@@ -92,14 +92,14 @@ export function AppSidebar() {
             </p>
           </div>
 
-          <Button
+          {/* <Button
             type="button"
             variant="ghost"
             size="icon"
             className="size-10 shrink-0 rounded-full bg-white shadow-[0_6px_16px_rgba(0,0,0,0.08)] hover:bg-white"
           >
             <Settings className="size-4" />
-          </Button>
+          </Button> */}
         </div>
 
         <Button
