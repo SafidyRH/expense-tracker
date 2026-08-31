@@ -1,27 +1,14 @@
-import {
-  defineConfig,
-} from "vitest/config";
-
-export default defineConfig({
+export default {
   test: {
     environment: "node",
+    fileParallelism: false,
 
     include: [
-      "src/test/integration/**/*.test.ts",
+      "src/modules/**/test/*.integration.test.ts",
     ],
 
     setupFiles: [
-      "./src/test/setup-env.ts",
+      "src/test/setup.ts",
     ],
-
-    // Les tests touchent la même DB.
-    // On commence volontairement en séquentiel.
-    fileParallelism: false,
-
-    maxWorkers: 1,
-
-    testTimeout: 30_000,
-
-    hookTimeout: 30_000,
   },
-});
+};
