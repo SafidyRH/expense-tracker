@@ -6,9 +6,21 @@ import {
 
 export function PwaRegistrar() {
   useEffect(() => {
-    if (
-      !("serviceWorker" in navigator)
-    ) {
+    if (!("serviceWorker" in navigator)) {
+      return;
+    }
+
+    if (process.env.NODE_ENV !== "production") {
+      navigator.serviceWorker
+        .getRegistrations()
+        .then((registrations) =>
+          Promise.all(
+            registrations.map((registration) => registration.unregister()),
+          ),
+        )
+        .catch(() => {
+          // Dev still works if a browser blocks service worker cleanup.
+        });
       return;
     }
 

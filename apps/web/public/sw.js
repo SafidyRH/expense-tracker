@@ -1,4 +1,4 @@
-const CACHE_NAME = "expense-tracker-shell-v1";
+const CACHE_NAME = "expense-tracker-shell-v2";
 
 const APP_SHELL = [
   "/",
@@ -44,6 +44,10 @@ self.addEventListener("fetch", (event) => {
   }
 
   if (url.pathname.startsWith("/api/")) {
+    return;
+  }
+
+  if (url.pathname.startsWith("/_next/")) {
     return;
   }
 
