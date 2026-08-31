@@ -1,6 +1,6 @@
 "use client"
 
-import { useAuth } from "@better-auth-ui/react"
+import { useAuth, useSession } from "@better-auth-ui/react"
 import { useCallback } from "react"
 import {
   isTwoFactorRedirect,
@@ -28,14 +28,15 @@ import {
  * @returns A callback taking the resolved data of a sign-in mutation.
  */
 export function useSignInContinuation() {
-  const { basePaths, navigate, plugins, redirectTo } = useAuth()
+  const { authClient, basePaths, navigate, plugins, redirectTo } = useAuth()
+  const { refetch: refetchSession } = useSession(authClient)
 
   const twoFactorPath = plugins.find(
     (plugin) => plugin.id === TWO_FACTOR_PLUGIN_ID
   )?.viewPaths?.auth?.twoFactor
 
   return useCallback(
-    (data: unknown) => {
+    async (data: unknown) => {
       if (twoFactorPath && isTwoFactorRedirect(data)) {
         storeTwoFactorMethods(data.twoFactorMethods)
 
@@ -45,8 +46,9 @@ export function useSignInContinuation() {
         return
       }
 
+      await refetchSession()
       navigate({ to: redirectTo })
     },
-    [basePaths.auth, navigate, redirectTo, twoFactorPath]
+    [basePaths.auth, navigate, redirectTo, refetchSession, twoFactorPath]
   )
 }

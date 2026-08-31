@@ -10,6 +10,7 @@ import {
   AuthPrompts,
   useAuth,
   useFetchOptions,
+  useSession,
   useSignUpEmail
 } from "@better-auth-ui/react"
 import { useIsMutating } from "@tanstack/react-query"
@@ -87,6 +88,7 @@ export function SignUp({
   } = useAuth()
 
   const { fetchOptions, resetFetchOptions } = useFetchOptions()
+  const { refetch: refetchSession } = useSession(authClient)
 
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
@@ -108,7 +110,7 @@ export function SignUp({
         setConfirmPassword("")
         resetFetchOptions()
       },
-      onSuccess: (_data, { email }) => {
+      onSuccess: async (_data, { email }) => {
         if (emailAndPassword?.requireEmailVerification) {
           sessionStorage.setItem("better-auth-ui.verify-email", email)
           navigate({
@@ -118,8 +120,10 @@ export function SignUp({
             )
           })
         } else if (onSignUpSuccess) {
+          await refetchSession()
           onSignUpSuccess()
         } else {
+          await refetchSession()
           navigate({ to: redirectTo })
         }
       }
