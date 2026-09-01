@@ -22,7 +22,14 @@
     "test:db:down": "docker compose -f compose.test.yaml down -v",
     "test:db:migrate": "pnpm -C ./packages/database run db:test:migrate",
     "test:api:unit": "pnpm --dir apps/api test:unit",
-    "test:api:integration": "pnpm --dir apps/api exec vitest run --config vitest.integration.config.ts"
+    "test:api:integration": "pnpm --dir apps/api exec vitest run --config vitest.integration.config.ts",
+
+    "lint:web": "pnpm -C ./apps/web exec eslint .",
+
+    "typecheck:web": "pnpm -C ./apps/web exec tsc --noEmit",
+    "typecheck:api": "pnpm -C ./apps/api exec tsc --noEmit",
+
+    "build:web": "pnpm -C ./apps/web run build"
   },
   "keywords": [],
   "author": "",
