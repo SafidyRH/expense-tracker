@@ -19,7 +19,14 @@ import {
   transactionRoutes,
 } from "./modules/transactions/index.js";
 
+import {
+  errorHandler,
+} from "./middleware/error-handler.js";
+
+
 const app = new Hono();
+
+app.onError(errorHandler);
 
 app.use(
   "*",
@@ -98,5 +105,20 @@ app.route(
   "/api/transactions",
   transactionRoutes
 );
+
+app.notFound((c) => {
+  return c.json(
+    {
+      error: {
+        code:
+          "NOT_FOUND",
+
+        message:
+          "Route not found",
+      },
+    },
+    404
+  );
+});
 
 export default app;

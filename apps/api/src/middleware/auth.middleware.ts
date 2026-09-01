@@ -1,7 +1,7 @@
 import { createMiddleware } from "hono/factory";
-import { HTTPException } from "hono/http-exception";
-
 import { auth } from "../lib/auth.js";
+import { UnauthorizedError } from "../shared/errors/errors.js";
+
 
 export type AuthEnv = {
   Variables: {
@@ -9,20 +9,29 @@ export type AuthEnv = {
   };
 };
 
-export const requireAuth = createMiddleware<AuthEnv>(
-  async (c, next) => {
-    const session = await auth.api.getSession({
-      headers: c.req.raw.headers,
-    });
+export const requireAuth =
+  createMiddleware<AuthEnv>(
+    async (
+      c,
+      next
+    ) => {
+      const session =
+        await auth.api.getSession({
+          headers:
+            c.req.raw.headers,
+        });
 
-    if (!session) {
-      throw new HTTPException(401, {
-        message: "Unauthorized",
-      });
+      if (!session) {
+        throw new UnauthorizedError(
+          "Authentication required"
+        );
+      }
+
+      c.set(
+        "session",
+        session
+      );
+
+      await next();
     }
-
-    c.set("session", session);
-
-    await next();
-  }
-);
+  );

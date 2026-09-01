@@ -1,0 +1,28 @@
+export type AppErrorCode =
+  | "VALIDATION_ERROR"
+  | "UNAUTHORIZED"
+  | "FORBIDDEN"
+  | "NOT_FOUND"
+  | "CONFLICT"
+  | "INTERNAL_SERVER_ERROR"
+
+  // Accounts
+  | "ACCOUNT_NOT_FOUND"
+  | "ACCOUNT_ARCHIVED"
+
+  // Categories
+  | "CATEGORY_NOT_FOUND"
+  | "INVALID_CATEGORY_TYPE"
+  | "SYSTEM_CATEGORY_READ_ONLY"
+
+  // Transactions
+  | "TRANSACTION_NOT_FOUND"
+  | "DUPLICATE_TRANSACTION"
+  | "INVALID_TRANSACTION_AMOUNT"
+
+  // Transfers
+  | "INVALID_TRANSFER"
+  | "SAME_TRANSFER_ACCOUNT"
+
+  // Budgets
+  | "BUDGET_NOT_FOUND";
