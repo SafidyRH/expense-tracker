@@ -78,10 +78,21 @@ export const errorHandler: ErrorHandler = (
    * car il pourrait contenir des infos Prisma,
    * SQL, chemins internes, etc.
    */
-  console.error(
-    "Unhandled API error:",
-    error
-  );
+   c.set(
+      "handledError",
+      {
+        code:
+          "INTERNAL_SERVER_ERROR",
+
+        error:
+          error instanceof
+          Error
+            ? error
+            : new Error(
+                "Unknown error"
+              ),
+      }
+    );
 
   return c.json(
     apiErrorBody({
