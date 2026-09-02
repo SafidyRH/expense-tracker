@@ -15,6 +15,16 @@ import {
 } from "../../../middleware/auth.middleware.js";
 
 import {
+  BadRequestError,
+  InternalServerError,
+  NotFoundError,
+} from "../../../shared/errors/index.js";
+
+import {
+  throwOnValidationError,
+} from "../../../shared/validation/zod-validator.js";
+
+import {
   CreateExpense,
 } from "../application/create-expense.js";
 import {
@@ -57,6 +67,18 @@ import {
   toTransactionHistoryDto,
 } from "./transaction.mapper.js";
 
+import type {
+  CreateExpenseError,
+} from "../domain/expense.js";
+
+import type {
+  CreateIncomeError,
+} from "../domain/income.js";
+
+import type {
+  CreateTransferError,
+} from "../domain/transfer.js";
+
 const repository =
   new PrismaTransactionRepository();
 
@@ -87,7 +109,8 @@ transactionRoutes.post(
 
   zValidator(
     "json",
-    createExpenseSchema
+    createExpenseSchema,
+    throwOnValidationError
   ),
 
   async (c) => {
@@ -132,50 +155,8 @@ transactionRoutes.post(
       });
 
     if (!result.success) {
-      if (
-        result.error ===
-        "ACCOUNT_NOT_FOUND"
-      ) {
-        return c.json(
-          {
-            error: {
-              code:
-                "ACCOUNT_NOT_FOUND",
-
-              message:
-                "Financial account not found",
-            },
-          },
-          404
-        );
-      }
-
-      if (
-        result.error ===
-        "CATEGORY_NOT_FOUND"
-      ) {
-        return c.json(
-          {
-            error: {
-              code:
-                "CATEGORY_NOT_FOUND",
-
-              message:
-                "Expense category not found",
-            },
-          },
-          404
-        );
-      }
-
-      return c.json(
-        {
-          error: {
-            code:
-              "UNKNOWN_ERROR",
-          },
-        },
-        500
+      throwCreateExpenseError(
+        result.error
       );
     }
 
@@ -204,7 +185,8 @@ transactionRoutes.post(
 
   zValidator(
     "json",
-    createIncomeSchema
+    createIncomeSchema,
+    throwOnValidationError
   ),
 
   async (c) => {
@@ -249,50 +231,8 @@ transactionRoutes.post(
       });
 
     if (!result.success) {
-      if (
-        result.error ===
-        "ACCOUNT_NOT_FOUND"
-      ) {
-        return c.json(
-          {
-            error: {
-              code:
-                "ACCOUNT_NOT_FOUND",
-
-              message:
-                "Financial account not found",
-            },
-          },
-          404
-        );
-      }
-
-      if (
-        result.error ===
-        "CATEGORY_NOT_FOUND"
-      ) {
-        return c.json(
-          {
-            error: {
-              code:
-                "CATEGORY_NOT_FOUND",
-
-              message:
-                "Income category not found",
-            },
-          },
-          404
-        );
-      }
-
-      return c.json(
-        {
-          error: {
-            code:
-              "UNKNOWN_ERROR",
-          },
-        },
-        500
+      throwCreateIncomeError(
+        result.error
       );
     }
 
@@ -321,7 +261,8 @@ transactionRoutes.post(
 
   zValidator(
     "json",
-    createTransferSchema
+    createTransferSchema,
+    throwOnValidationError
   ),
 
   async (c) => {
@@ -366,68 +307,8 @@ transactionRoutes.post(
       });
 
     if (!result.success) {
-      if (
-        result.error ===
-        "ACCOUNT_NOT_FOUND"
-      ) {
-        return c.json(
-          {
-            error: {
-              code:
-                "ACCOUNT_NOT_FOUND",
-
-              message:
-                "Financial account not found",
-            },
-          },
-          404
-        );
-      }
-
-      if (
-        result.error ===
-        "SAME_ACCOUNT"
-      ) {
-        return c.json(
-          {
-            error: {
-              code:
-                "SAME_ACCOUNT",
-
-              message:
-                "Transfer accounts must be different",
-            },
-          },
-          400
-        );
-      }
-
-      if (
-        result.error ===
-        "CURRENCY_MISMATCH"
-      ) {
-        return c.json(
-          {
-            error: {
-              code:
-                "CURRENCY_MISMATCH",
-
-              message:
-                "Transfer accounts must use the same currency",
-            },
-          },
-          400
-        );
-      }
-
-      return c.json(
-        {
-          error: {
-            code:
-              "UNKNOWN_ERROR",
-          },
-        },
-        500
+      throwCreateTransferError(
+        result.error
       );
     }
 
@@ -456,7 +337,8 @@ transactionRoutes.get(
 
   zValidator(
     "query",
-    transactionHistoryQuerySchema
+    transactionHistoryQuerySchema,
+    throwOnValidationError
   ),
 
   async (c) => {
@@ -475,17 +357,9 @@ transactionRoutes.get(
         );
 
       if (!cursor) {
-        return c.json(
-          {
-            error: {
-              code:
-                "INVALID_CURSOR",
-
-              message:
-                "Invalid transaction cursor",
-            },
-          },
-          400
+        throw new BadRequestError(
+          "Invalid transaction cursor",
+          "INVALID_CURSOR"
         );
       }
     }
@@ -558,3 +432,88 @@ transactionRoutes.get(
   }
 );
 
+function throwCreateExpenseError(
+  error: CreateExpenseError
+): never {
+  switch (error) {
+    case "ACCOUNT_NOT_FOUND":
+      throw new NotFoundError(
+        "Financial account not found",
+        "ACCOUNT_NOT_FOUND"
+      );
+
+    case "CATEGORY_NOT_FOUND":
+      throw new NotFoundError(
+        "Expense category not found",
+        "CATEGORY_NOT_FOUND"
+      );
+
+    default:
+      throwUnexpectedTransactionError(
+        error
+      );
+  }
+}
+
+function throwCreateIncomeError(
+  error: CreateIncomeError
+): never {
+  switch (error) {
+    case "ACCOUNT_NOT_FOUND":
+      throw new NotFoundError(
+        "Financial account not found",
+        "ACCOUNT_NOT_FOUND"
+      );
+
+    case "CATEGORY_NOT_FOUND":
+      throw new NotFoundError(
+        "Income category not found",
+        "CATEGORY_NOT_FOUND"
+      );
+
+    default:
+      throwUnexpectedTransactionError(
+        error
+      );
+  }
+}
+
+function throwCreateTransferError(
+  error: CreateTransferError
+): never {
+  switch (error) {
+    case "ACCOUNT_NOT_FOUND":
+      throw new NotFoundError(
+        "Financial account not found",
+        "ACCOUNT_NOT_FOUND"
+      );
+
+    case "SAME_ACCOUNT":
+      throw new BadRequestError(
+        "Transfer accounts must be different",
+        "SAME_ACCOUNT"
+      );
+
+    case "CURRENCY_MISMATCH":
+      throw new BadRequestError(
+        "Transfer accounts must use the same currency",
+        "CURRENCY_MISMATCH"
+      );
+
+    default:
+      throwUnexpectedTransactionError(
+        error
+      );
+  }
+}
+
+function throwUnexpectedTransactionError(
+  error: string
+): never {
+  console.error(
+    "Unexpected transaction error:",
+    error
+  );
+
+  throw new InternalServerError();
+}

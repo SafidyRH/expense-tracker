@@ -13,6 +13,14 @@ import {
 } from "../../../middleware/auth.middleware.js";
 
 import {
+  NotFoundError,
+} from "../../../shared/errors/index.js";
+
+import {
+  throwOnValidationError,
+} from "../../../shared/validation/zod-validator.js";
+
+import {
   PrismaCategoryRepository,
 } from "../infrastructure/prisma-category.repository.js";
 
@@ -69,7 +77,8 @@ categoryRoutes.get(
 
   zValidator(
     "query",
-    categoryFilterSchema
+    categoryFilterSchema,
+    throwOnValidationError
   ),
 
   async (c) => {
@@ -98,7 +107,8 @@ categoryRoutes.post(
 
   zValidator(
     "json",
-    createCategorySchema
+    createCategorySchema,
+    throwOnValidationError
   ),
 
   async (c) => {
@@ -134,12 +144,14 @@ categoryRoutes.patch(
 
   zValidator(
     "param",
-    categoryIdSchema
+    categoryIdSchema,
+    throwOnValidationError
   ),
 
   zValidator(
     "json",
-    updateCategorySchema
+    updateCategorySchema,
+    throwOnValidationError
   ),
 
   async (c) => {
@@ -160,17 +172,9 @@ categoryRoutes.patch(
       );
 
     if (!category) {
-      return c.json(
-        {
-          error: {
-            code:
-              "CATEGORY_NOT_FOUND",
-
-            message:
-              "Category not found or cannot be modified",
-          },
-        },
-        404
+      throw new NotFoundError(
+        "Category not found or cannot be modified",
+        "CATEGORY_NOT_FOUND"
       );
     }
 
@@ -186,7 +190,8 @@ categoryRoutes.delete(
 
   zValidator(
     "param",
-    categoryIdSchema
+    categoryIdSchema,
+    throwOnValidationError
   ),
 
   async (c) => {
@@ -203,17 +208,9 @@ categoryRoutes.delete(
       );
 
     if (!archived) {
-      return c.json(
-        {
-          error: {
-            code:
-              "CATEGORY_NOT_FOUND",
-
-            message:
-              "Category not found or cannot be archived",
-          },
-        },
-        404
+      throw new NotFoundError(
+        "Category not found or cannot be archived",
+        "CATEGORY_NOT_FOUND"
       );
     }
 

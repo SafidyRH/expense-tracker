@@ -11,6 +11,14 @@ import {
 } from "../../../middleware/auth.middleware.js";
 
 import {
+  NotFoundError,
+} from "../../../shared/errors/index.js";
+
+import {
+  throwOnValidationError,
+} from "../../../shared/validation/zod-validator.js";
+
+import {
   PrismaFinancialAccountRepository,
 } from "../infrastructure/prisma-financial-account.repository.js";
 
@@ -75,7 +83,8 @@ accountRoutes.post(
 
   zValidator(
     "json",
-    createFinancialAccountSchema
+    createFinancialAccountSchema,
+    throwOnValidationError
   ),
 
   async (c) => {
@@ -142,7 +151,8 @@ accountRoutes.get(
 
   zValidator(
     "param",
-    accountIdSchema
+    accountIdSchema,
+    throwOnValidationError
   ),
 
   async (c) => {
@@ -159,17 +169,9 @@ accountRoutes.get(
       );
 
     if (!account) {
-      return c.json(
-        {
-          error: {
-            code:
-              "ACCOUNT_NOT_FOUND",
-
-            message:
-              "Financial account not found",
-          },
-        },
-        404
+      throw new NotFoundError(
+        "Financial account not found",
+        "ACCOUNT_NOT_FOUND"
       );
     }
 
@@ -187,12 +189,14 @@ accountRoutes.patch(
 
   zValidator(
     "param",
-    accountIdSchema
+    accountIdSchema,
+    throwOnValidationError
   ),
 
   zValidator(
     "json",
-    updateFinancialAccountSchema
+    updateFinancialAccountSchema,
+    throwOnValidationError
   ),
 
   async (c) => {
@@ -213,17 +217,9 @@ accountRoutes.patch(
       );
 
     if (!account) {
-      return c.json(
-        {
-          error: {
-            code:
-              "ACCOUNT_NOT_FOUND",
-
-            message:
-              "Financial account not found",
-          },
-        },
-        404
+      throw new NotFoundError(
+        "Financial account not found",
+        "ACCOUNT_NOT_FOUND"
       );
     }
 
@@ -241,7 +237,8 @@ accountRoutes.delete(
 
   zValidator(
     "param",
-    accountIdSchema
+    accountIdSchema,
+    throwOnValidationError
   ),
 
   async (c) => {
@@ -258,17 +255,9 @@ accountRoutes.delete(
       );
 
     if (!archived) {
-      return c.json(
-        {
-          error: {
-            code:
-              "ACCOUNT_NOT_FOUND",
-
-            message:
-              "Financial account not found",
-          },
-        },
-        404
+      throw new NotFoundError(
+        "Financial account not found",
+        "ACCOUNT_NOT_FOUND"
       );
     }
 

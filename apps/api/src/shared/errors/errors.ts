@@ -18,6 +18,23 @@ export class ValidationError extends AppError {
   }
 }
 
+export class BadRequestError extends AppError {
+  constructor(
+    message: string,
+    code: AppErrorCode = "VALIDATION_ERROR",
+    details?: unknown
+  ) {
+    super({
+      code,
+      message,
+      statusCode: 400,
+      details,
+    });
+
+    this.name = "BadRequestError";
+  }
+}
+
 export class UnauthorizedError extends AppError {
   constructor(
     message = "Unauthorized",
@@ -75,5 +92,20 @@ export class ConflictError extends AppError {
     });
 
     this.name = "ConflictError";
+  }
+}
+
+export class InternalServerError extends AppError {
+  constructor(
+    message = "An unexpected error occurred",
+    code: AppErrorCode = "INTERNAL_SERVER_ERROR"
+  ) {
+    super({
+      code,
+      message,
+      statusCode: 500,
+    });
+
+    this.name = "InternalServerError";
   }
 }

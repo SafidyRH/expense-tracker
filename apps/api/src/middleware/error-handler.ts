@@ -2,6 +2,9 @@ import type { ErrorHandler } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { ZodError } from "zod";
 import { AppError } from "../shared/errors/app-error.js";
+import {
+  apiErrorBody,
+} from "../shared/http/api-response.js";
 
 export const errorHandler: ErrorHandler = (
   error,
@@ -12,19 +15,11 @@ export const errorHandler: ErrorHandler = (
    */
   if (error instanceof AppError) {
     return c.json(
-      {
-        error: {
-          code: error.code,
-          message: error.message,
-
-          ...(error.details !== undefined
-            ? {
-                details:
-                  error.details,
-              }
-            : {}),
-        },
-      },
+      apiErrorBody({
+        code: error.code,
+        message: error.message,
+        details: error.details,
+      }),
       error.statusCode
     );
   }
@@ -34,26 +29,23 @@ export const errorHandler: ErrorHandler = (
    */
   if (error instanceof ZodError) {
     return c.json(
-      {
-        error: {
-          code: "VALIDATION_ERROR",
-          message:
-            "Invalid request data",
+      apiErrorBody({
+        code: "VALIDATION_ERROR",
+        message:
+          "Invalid request data",
+        details:
+          error.issues.map(
+            (issue) => ({
+              path:
+                issue.path.join(
+                  "."
+                ),
 
-          details:
-            error.issues.map(
-              (issue) => ({
-                path:
-                  issue.path.join(
-                    "."
-                  ),
-
-                message:
-                  issue.message,
-              })
-            ),
-        },
-      },
+              message:
+                issue.message,
+            })
+          ),
+      }),
       400
     );
   }
@@ -66,18 +58,15 @@ export const errorHandler: ErrorHandler = (
    */
   if (error instanceof HTTPException) {
     return c.json(
-      {
-        error: {
-          code:
-            getHttpErrorCode(
-              error.status
-            ),
-
-          message:
-            error.message ||
-            "Request failed",
-        },
-      },
+      apiErrorBody({
+        code:
+          getHttpErrorCode(
+            error.status
+          ),
+        message:
+          error.message ||
+          "Request failed",
+      }),
       error.status
     );
   }
@@ -95,15 +84,12 @@ export const errorHandler: ErrorHandler = (
   );
 
   return c.json(
-    {
-      error: {
-        code:
-          "INTERNAL_SERVER_ERROR",
-
-        message:
-          "An unexpected error occurred",
-      },
-    },
+    apiErrorBody({
+      code:
+        "INTERNAL_SERVER_ERROR",
+      message:
+        "An unexpected error occurred",
+    }),
     500
   );
 };

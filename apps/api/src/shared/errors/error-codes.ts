@@ -5,6 +5,8 @@ export type AppErrorCode =
   | "NOT_FOUND"
   | "CONFLICT"
   | "INTERNAL_SERVER_ERROR"
+  | "INVALID_CURSOR"
+  | "SERVICE_UNAVAILABLE"
 
   // Accounts
   | "ACCOUNT_NOT_FOUND"
@@ -22,7 +24,12 @@ export type AppErrorCode =
 
   // Transfers
   | "INVALID_TRANSFER"
+  | "SAME_ACCOUNT"
   | "SAME_TRANSFER_ACCOUNT"
+  | "CURRENCY_MISMATCH"
 
   // Budgets
-  | "BUDGET_NOT_FOUND";
+  | "BUDGET_NOT_FOUND"
+  | "GLOBAL_BUDGET_TOO_LOW"
+  | "GLOBAL_BUDGET_REQUIRED"
+  | "CATEGORY_BUDGET_EXCEEDS_GLOBAL";

@@ -15,6 +15,15 @@ import {
 } from "../../../middleware/auth.middleware.js";
 
 import {
+  ConflictError,
+  NotFoundError,
+} from "../../../shared/errors/index.js";
+
+import {
+  throwOnValidationError,
+} from "../../../shared/validation/zod-validator.js";
+
+import {
   budgetCategoryParamSchema,
   budgetMonthSchema,
   upsertBudgetSchema,
@@ -33,7 +42,8 @@ budgetRoutes.get(
 
   zValidator(
     "query",
-    budgetMonthSchema
+    budgetMonthSchema,
+    throwOnValidationError
   ),
 
   async (c) => {
@@ -264,7 +274,8 @@ budgetRoutes.put(
 
   zValidator(
     "json",
-    upsertBudgetSchema
+    upsertBudgetSchema,
+    throwOnValidationError
   ),
 
   async (c) => {
@@ -300,17 +311,9 @@ budgetRoutes.put(
       0n;
 
     if (allocatedMinor > amountMinor) {
-      return c.json(
-        {
-          error: {
-            code:
-              "GLOBAL_BUDGET_TOO_LOW",
-
-            message:
-              "Le budget mensuel ne peut pas être inférieur aux enveloppes déjà allouées.",
-          },
-        },
-        409
+      throw new ConflictError(
+        "Le budget mensuel ne peut pas être inférieur aux enveloppes déjà allouées.",
+        "GLOBAL_BUDGET_TOO_LOW"
       );
     }
 
@@ -361,12 +364,14 @@ budgetRoutes.put(
 
   zValidator(
     "param",
-    budgetCategoryParamSchema
+    budgetCategoryParamSchema,
+    throwOnValidationError
   ),
 
   zValidator(
     "json",
-    upsertBudgetSchema
+    upsertBudgetSchema,
+    throwOnValidationError
   ),
 
   async (c) => {
@@ -401,17 +406,9 @@ budgetRoutes.put(
       });
 
     if (!category) {
-      return c.json(
-        {
-          error: {
-            code:
-              "CATEGORY_NOT_FOUND",
-
-            message:
-              "Expense category not found",
-          },
-        },
-        404
+      throw new NotFoundError(
+        "Expense category not found",
+        "CATEGORY_NOT_FOUND"
       );
     }
 
@@ -457,17 +454,9 @@ budgetRoutes.put(
     ]);
 
     if (!globalBudget) {
-      return c.json(
-        {
-          error: {
-            code:
-              "GLOBAL_BUDGET_REQUIRED",
-
-            message:
-              "Définissez d'abord le budget mensuel avant d'allouer une catégorie.",
-          },
-        },
-        409
+      throw new ConflictError(
+        "Définissez d'abord le budget mensuel avant d'allouer une catégorie.",
+        "GLOBAL_BUDGET_REQUIRED"
       );
     }
 
@@ -480,17 +469,9 @@ budgetRoutes.put(
       allocatedMinor >
       globalBudget.amountMinor
     ) {
-      return c.json(
-        {
-          error: {
-            code:
-              "CATEGORY_BUDGET_EXCEEDS_GLOBAL",
-
-            message:
-              "La somme des enveloppes catégorie ne peut pas dépasser le budget mensuel.",
-          },
-        },
-        409
+      throw new ConflictError(
+        "La somme des enveloppes catégorie ne peut pas dépasser le budget mensuel.",
+        "CATEGORY_BUDGET_EXCEEDS_GLOBAL"
       );
     }
 
@@ -554,12 +535,14 @@ budgetRoutes.delete(
 
   zValidator(
     "param",
-    budgetCategoryParamSchema
+    budgetCategoryParamSchema,
+    throwOnValidationError
   ),
 
   zValidator(
     "query",
-    budgetMonthSchema
+    budgetMonthSchema,
+    throwOnValidationError
   ),
 
   async (c) => {

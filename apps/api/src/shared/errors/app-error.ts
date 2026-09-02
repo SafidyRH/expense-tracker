@@ -8,6 +8,7 @@ export type AppErrorStatus =
   | 409
   | 422
   | 429
+  | 503
   | 500;
 
 interface AppErrorOptions {

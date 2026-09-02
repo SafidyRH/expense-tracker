@@ -22,6 +22,9 @@ import {
 import {
   errorHandler,
 } from "./middleware/error-handler.js";
+import {
+  apiErrorBody,
+} from "./shared/http/api-response.js";
 
 
 const app = new Hono();
@@ -108,15 +111,12 @@ app.route(
 
 app.notFound((c) => {
   return c.json(
-    {
-      error: {
-        code:
-          "NOT_FOUND",
-
-        message:
-          "Route not found",
-      },
-    },
+    apiErrorBody({
+      code:
+        "NOT_FOUND",
+      message:
+        "Route not found",
+    }),
     404
   );
 });
