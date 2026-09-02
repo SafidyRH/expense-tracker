@@ -25,18 +25,71 @@ import {
 import {
   apiErrorBody,
 } from "./shared/http/api-response.js";
+import type { AppEnv } from "./types/app-env.js";
+import { requestLoggerMiddleware } from "./middleware/request-logger.middleware.js";
 
 
-const app = new Hono();
+const app =
+  new Hono<AppEnv>();
 
-app.onError(errorHandler);
+/*
+ * Global error handling
+ */
+app.onError(
+  errorHandler
+);
+
+/*
+ * Le logger doit être placé
+ * très tôt pour capturer toutes
+ * les requêtes.
+ */
+app.use(
+  "*",
+  requestLoggerMiddleware
+);
 
 app.use(
   "*",
   cors({
-    origin: "http://localhost:3000",
+    origin:
+      process.env.FRONTEND_URL ??
+      "http://localhost:3000",
+
     credentials: true,
+
+    exposeHeaders: [
+      "X-Request-ID",
+    ],
   })
+);
+
+/*
+ * Better Auth
+ */
+app.on(
+  [
+    "POST",
+    "GET",
+  ],
+
+  "/api/auth/*",
+
+  (c) =>
+    auth.handler(
+      c.req.raw
+    )
+);
+
+/*
+ * Health check
+ */
+app.get(
+  "/health",
+  (c) =>
+    c.json({
+      status: "ok",
+    })
 );
 
 app.all("/api/auth/*", (c) => {
