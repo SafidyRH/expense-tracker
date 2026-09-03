@@ -5,6 +5,10 @@ import { prisma } from "@expense-tracker/database";
 import { auth } from "./lib/auth.js";
 
 import {requireAuth} from "./middleware/auth.middleware.js";
+import { requestLoggerMiddleware } from "./middleware/request-logger.middleware.js";
+import {
+  securityHeaders,
+} from "./middleware/security.middleware.js";
 
 import {
   accountRoutes,
@@ -26,7 +30,11 @@ import {
   apiErrorBody,
 } from "./shared/http/api-response.js";
 import type { AppEnv } from "./types/app-env.js";
-import { requestLoggerMiddleware } from "./middleware/request-logger.middleware.js";
+
+import {
+  corsConfig,
+} from "./config/cors.js";
+
 
 
 const app =
@@ -51,17 +59,12 @@ app.use(
 
 app.use(
   "*",
-  cors({
-    origin:
-      process.env.FRONTEND_URL ??
-      "http://localhost:3000",
+  securityHeaders
+);
 
-    credentials: true,
-
-    exposeHeaders: [
-      "X-Request-ID",
-    ],
-  })
+app.use(
+  "/api/*",
+  cors(corsConfig)
 );
 
 /*

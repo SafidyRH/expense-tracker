@@ -4,6 +4,7 @@ export default {
 
     include: [
       "src/modules/**/test/*.unit.test.ts",
+      "src/middleware/test/*.test.ts",
     ],
 
     setupFiles: [
