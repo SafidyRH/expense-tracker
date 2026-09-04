@@ -1,6 +1,13 @@
 import { Hono } from "hono";
 
 import {
+  errorHandler,
+} from "../shared/errors/error-handler.js";
+import type {
+  AppEnv,
+} from "../types/app-env.js";
+
+import {
   accountRoutes,
 } from "../modules/accounts/index.js";
 import {
@@ -14,7 +21,12 @@ import {
 } from "../modules/transactions/index.js";
 
 export function createIntegrationApp() {
-  const app = new Hono();
+  const app =
+    new Hono<AppEnv>();
+
+  app.onError(
+    errorHandler
+  );
 
   app.route(
     "/api/accounts",
