@@ -1,6 +1,16 @@
 # API Route Inventory
 
 This inventory is the human-readable companion to `/openapi.json`.
+The CI-enforced security inventory is generated from OpenAPI by
+`src/openapi/security-inventory.ts` and tested in `src/openapi/openapi.test.ts`.
+
+Every documented operation must declare either:
+
+- `security: [...]` for protected operations.
+- `x-public: true` for intentional public operations.
+
+Protected resource operations may also declare `x-ownership` to identify the
+BOLA/BOPLA test surface.
 
 ## Documentation
 
@@ -21,7 +31,11 @@ This inventory is the human-readable companion to `/openapi.json`.
 | Method | Path | Auth | Source | OpenAPI |
 | --- | --- | --- | --- | --- |
 | GET | `/me` | Session cookie | `src/app.ts` | Yes |
-| ALL | `/api/auth/*` | Better Auth managed | `src/app.ts` | Delegated |
+| POST | `/api/auth/sign-in/email` | Public | `src/openapi/auth.openapi.ts` | Documented, delegated runtime |
+| POST | `/api/auth/sign-up/email` | Public | `src/openapi/auth.openapi.ts` | Documented, delegated runtime |
+| GET | `/api/auth/get-session` | Public | `src/openapi/auth.openapi.ts` | Documented, delegated runtime |
+| POST | `/api/auth/sign-out` | Session cookie | `src/openapi/auth.openapi.ts` | Documented, delegated runtime |
+| ALL | `/api/auth/*` | Better Auth managed | `src/app.ts` | Runtime delegation |
 
 ## Accounts
 
