@@ -1,10 +1,11 @@
 import type { ErrorHandler } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { ZodError } from "zod";
-import { AppError } from "../shared/errors/app-error.js";
+import { AppError } from "./app-error.js";
 import {
   apiErrorBody,
-} from "../shared/http/api-response.js";
+} from "../http/api-response.js";
+import type { AppErrorCode } from "./error-codes.js";
 
 export const errorHandler: ErrorHandler = (
   error,
@@ -107,7 +108,7 @@ export const errorHandler: ErrorHandler = (
 
 function getHttpErrorCode(
   status: number
-) {
+): AppErrorCode {
   switch (status) {
     case 400:
       return "VALIDATION_ERROR";
@@ -121,8 +122,23 @@ function getHttpErrorCode(
     case 404:
       return "NOT_FOUND";
 
+    case 405:
+      return "METHOD_NOT_ALLOWED";
+
+    case 408:
+      return "REQUEST_TIMEOUT";
+
     case 409:
       return "CONFLICT";
+
+    case 413:
+      return "PAYLOAD_TOO_LARGE";
+
+    case 415:
+      return "UNSUPPORTED_MEDIA_TYPE";
+
+    case 429:
+      return "RATE_LIMITED";
 
     default:
       return "INTERNAL_SERVER_ERROR";

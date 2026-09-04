@@ -109,3 +109,65 @@ export class InternalServerError extends AppError {
     this.name = "InternalServerError";
   }
 }
+
+export class PayloadTooLargeError extends AppError {
+  constructor(
+    message = "Request body is too large"
+  ) {
+    super({
+      code: "PAYLOAD_TOO_LARGE",
+      message,
+      statusCode: 413,
+    });
+
+    this.name =
+      "PayloadTooLargeError";
+  }
+}
+
+export class TooManyRequestsError extends AppError {
+  constructor(
+    message = "Too many requests"
+  ) {
+    super({
+      code: "RATE_LIMITED",
+      message,
+      statusCode: 429,
+    });
+
+    this.name =
+      "TooManyRequestsError";
+  }
+}
+
+export class UnsupportedMediaTypeError extends AppError {
+  constructor(
+    message =
+      "Content-Type must be application/json"
+  ) {
+    super({
+      code: "UNSUPPORTED_MEDIA_TYPE",
+      message,
+      statusCode: 415,
+    });
+
+    this.name =
+      "UnsupportedMediaTypeError";
+  }
+}
+
+export class MethodNotAllowedError extends AppError {
+  constructor(
+    message =
+      "HTTP method is not allowed"
+  ) {
+    super({
+      code: "METHOD_NOT_ALLOWED",
+      message,
+      statusCode: 405,
+    });
+
+    this.name =
+      "MethodNotAllowedError";
+  }
+}
