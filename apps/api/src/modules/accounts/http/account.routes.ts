@@ -1,14 +1,19 @@
-import { Hono } from "hono";
-
-import { zValidator } from "@hono/zod-validator";
-
-import type {
-  AuthEnv,
-} from "../../../middleware/auth.middleware.js";
-
 import {
   requireAuth,
 } from "../../../middleware/auth.middleware.js";
+import {
+  createOpenApiHono,
+} from "../../../openapi/hono.js";
+
+import {
+  archiveAccountRoute,
+  createAccountRoute,
+  getAccountRoute,
+  listAccountsRoute,
+  updateAccountRoute,
+} from "./account.openapi.js";
+
+
 
 import {
   NotFoundError,
@@ -43,15 +48,8 @@ import {
 } from "../application/archive-financial-account.js";
 
 import {
-  accountIdSchema,
-  createFinancialAccountSchema,
-  updateFinancialAccountSchema,
-} from "./account.schemas.js";
-
-import {
   toFinancialAccountDto,
 } from "./account.mapper.js";
-
 const repository =
   new PrismaFinancialAccountRepository();
 
@@ -71,22 +69,15 @@ const archiveFinancialAccount =
   new ArchiveFinancialAccount(repository);
 
 export const accountRoutes =
-  new Hono<AuthEnv>();
+  createOpenApiHono();
 
 accountRoutes.use(
   "*",
   requireAuth
 );
 
-accountRoutes.post(
-  "/",
-
-  zValidator(
-    "json",
-    createFinancialAccountSchema,
-    throwOnValidationError
-  ),
-
+accountRoutes.openapi(
+  createAccountRoute,
   async (c) => {
     const session =
       c.get("session");
@@ -126,9 +117,8 @@ accountRoutes.post(
   }
 );
 
-accountRoutes.get(
-  "/",
-
+accountRoutes.openapi(
+  listAccountsRoute,
   async (c) => {
     const session =
       c.get("session");
@@ -142,19 +132,13 @@ accountRoutes.get(
       data: accounts.map(
         toFinancialAccountDto
       ),
-    });
+    }, 200);
   }
 );
 
-accountRoutes.get(
-  "/:id",
 
-  zValidator(
-    "param",
-    accountIdSchema,
-    throwOnValidationError
-  ),
-
+accountRoutes.openapi(
+  getAccountRoute,
   async (c) => {
     const session =
       c.get("session");
@@ -180,25 +164,12 @@ accountRoutes.get(
         toFinancialAccountDto(
           account
         ),
-    });
+    }, 200);
   }
 );
 
-accountRoutes.patch(
-  "/:id",
-
-  zValidator(
-    "param",
-    accountIdSchema,
-    throwOnValidationError
-  ),
-
-  zValidator(
-    "json",
-    updateFinancialAccountSchema,
-    throwOnValidationError
-  ),
-
+accountRoutes.openapi(
+  updateAccountRoute,
   async (c) => {
     const session =
       c.get("session");
@@ -228,19 +199,12 @@ accountRoutes.patch(
         toFinancialAccountDto(
           account
         ),
-    });
+    }, 200);
   }
 );
 
-accountRoutes.delete(
-  "/:id",
-
-  zValidator(
-    "param",
-    accountIdSchema,
-    throwOnValidationError
-  ),
-
+accountRoutes.openapi(
+  archiveAccountRoute,
   async (c) => {
     const session =
       c.get("session");

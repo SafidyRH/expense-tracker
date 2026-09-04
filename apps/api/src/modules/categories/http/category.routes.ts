@@ -1,24 +1,14 @@
-import { Hono } from "hono";
-
-import {
-  zValidator,
-} from "@hono/zod-validator";
-
-import type {
-  AuthEnv,
-} from "../../../middleware/auth.middleware.js";
-
 import {
   requireAuth,
 } from "../../../middleware/auth.middleware.js";
 
 import {
-  NotFoundError,
-} from "../../../shared/errors/index.js";
+  createOpenApiHono,
+} from "../../../openapi/hono.js";
 
 import {
-  throwOnValidationError,
-} from "../../../shared/validation/zod-validator.js";
+  NotFoundError,
+} from "../../../shared/errors/index.js";
 
 import {
   PrismaCategoryRepository,
@@ -41,11 +31,11 @@ import {
 } from "../application/archive-category.js";
 
 import {
-  categoryFilterSchema,
-  categoryIdSchema,
-  createCategorySchema,
-  updateCategorySchema,
-} from "./category.schemas.js";
+  archiveCategoryRoute,
+  createCategoryRoute,
+  listCategoriesRoute,
+  updateCategoryRoute,
+} from "./category.openapi.js";
 
 import {
   toCategoryDto,
@@ -67,20 +57,13 @@ const archiveCategory =
   new ArchiveCategory(repository);
 
 export const categoryRoutes =
-  new Hono<AuthEnv>();
+  createOpenApiHono();
 
 categoryRoutes.use("*", requireAuth);
 
 
-categoryRoutes.get(
-  "/",
-
-  zValidator(
-    "query",
-    categoryFilterSchema,
-    throwOnValidationError
-  ),
-
+categoryRoutes.openapi(
+  listCategoriesRoute,
   async (c) => {
     const session =
       c.get("session");
@@ -98,19 +81,12 @@ categoryRoutes.get(
       data: categories.map(
         toCategoryDto
       ),
-    });
+    }, 200);
   }
 );
 
-categoryRoutes.post(
-  "/",
-
-  zValidator(
-    "json",
-    createCategorySchema,
-    throwOnValidationError
-  ),
-
+categoryRoutes.openapi(
+  createCategoryRoute,
   async (c) => {
     const session =
       c.get("session");
@@ -139,21 +115,8 @@ categoryRoutes.post(
   }
 );
 
-categoryRoutes.patch(
-  "/:id",
-
-  zValidator(
-    "param",
-    categoryIdSchema,
-    throwOnValidationError
-  ),
-
-  zValidator(
-    "json",
-    updateCategorySchema,
-    throwOnValidationError
-  ),
-
+categoryRoutes.openapi(
+  updateCategoryRoute,
   async (c) => {
     const session =
       c.get("session");
@@ -181,19 +144,12 @@ categoryRoutes.patch(
     return c.json({
       data:
         toCategoryDto(category),
-    });
+    }, 200);
   }
 );
 
-categoryRoutes.delete(
-  "/:id",
-
-  zValidator(
-    "param",
-    categoryIdSchema,
-    throwOnValidationError
-  ),
-
+categoryRoutes.openapi(
+  archiveCategoryRoute,
   async (c) => {
     const session =
       c.get("session");

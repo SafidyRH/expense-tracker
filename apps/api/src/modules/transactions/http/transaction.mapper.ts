@@ -17,7 +17,7 @@ export function toExpenseDto(
   return {
     id: expense.id,
 
-    type: "EXPENSE",
+    type: "EXPENSE" as const,
 
     accountId:
       expense.accountId,
@@ -133,7 +133,7 @@ export function toIncomeDto(
   return {
     id: income.id,
 
-    type: "INCOME",
+    type: "INCOME" as const,
 
     accountId:
       income.accountId,
@@ -173,7 +173,7 @@ export function toTransferDto(
   return {
     id: transfer.id,
 
-    type: "TRANSFER",
+    type: "TRANSFER" as const,
 
     fromAccountId:
       transfer.fromAccountId,

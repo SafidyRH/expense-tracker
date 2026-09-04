@@ -1,18 +1,13 @@
-import { Hono } from "hono";
-
 import {
-  zValidator,
-} from "@hono/zod-validator";
-
-import { prisma } from "@expense-tracker/database";
-
-import type {
-  AuthEnv,
-} from "../../../middleware/auth.middleware.js";
+  prisma,
+} from "@expense-tracker/database";
 
 import {
   requireAuth,
 } from "../../../middleware/auth.middleware.js";
+import {
+  createOpenApiHono,
+} from "../../../openapi/hono.js";
 
 import {
   ConflictError,
@@ -20,32 +15,22 @@ import {
 } from "../../../shared/errors/index.js";
 
 import {
-  throwOnValidationError,
-} from "../../../shared/validation/zod-validator.js";
-
-import {
-  budgetCategoryParamSchema,
-  budgetMonthSchema,
-  upsertBudgetSchema,
-} from "./budget.schemas.js";
+  deleteCategoryBudgetRoute,
+  getBudgetOverviewRoute,
+  upsertCategoryBudgetRoute,
+  upsertGlobalBudgetRoute,
+} from "./budget.openapi.js";
 
 export const budgetRoutes =
-  new Hono<AuthEnv>();
+  createOpenApiHono();
 
 budgetRoutes.use(
   "*",
   requireAuth
 );
 
-budgetRoutes.get(
-  "/",
-
-  zValidator(
-    "query",
-    budgetMonthSchema,
-    throwOnValidationError
-  ),
-
+budgetRoutes.openapi(
+  getBudgetOverviewRoute,
   async (c) => {
     const session =
       c.get("session");
@@ -265,19 +250,12 @@ budgetRoutes.get(
             }
           ),
       },
-    });
+    }, 200);
   }
 );
 
-budgetRoutes.put(
-  "/global",
-
-  zValidator(
-    "json",
-    upsertBudgetSchema,
-    throwOnValidationError
-  ),
-
+budgetRoutes.openapi(
+  upsertGlobalBudgetRoute,
   async (c) => {
     const session =
       c.get("session");
@@ -355,25 +333,12 @@ budgetRoutes.put(
     return c.json({
       data:
         toBudgetRecord(budget),
-    });
+    }, 200);
   }
 );
 
-budgetRoutes.put(
-  "/categories/:categoryId",
-
-  zValidator(
-    "param",
-    budgetCategoryParamSchema,
-    throwOnValidationError
-  ),
-
-  zValidator(
-    "json",
-    upsertBudgetSchema,
-    throwOnValidationError
-  ),
-
+budgetRoutes.openapi(
+  upsertCategoryBudgetRoute,
   async (c) => {
     const session =
       c.get("session");
@@ -526,25 +491,12 @@ budgetRoutes.put(
           icon: category.icon,
         },
       },
-    });
+    }, 200);
   }
 );
 
-budgetRoutes.delete(
-  "/categories/:categoryId",
-
-  zValidator(
-    "param",
-    budgetCategoryParamSchema,
-    throwOnValidationError
-  ),
-
-  zValidator(
-    "query",
-    budgetMonthSchema,
-    throwOnValidationError
-  ),
-
+budgetRoutes.openapi(
+  deleteCategoryBudgetRoute,
   async (c) => {
     const session =
       c.get("session");
@@ -703,7 +655,7 @@ function toBudgetAlert({
       threshold: 100,
       severity: "critical",
       label: "Dépassement",
-    };
+    } as const;
   }
 
   if (percentConsumed >= 100) {
@@ -712,7 +664,7 @@ function toBudgetAlert({
       threshold: 100,
       severity: "danger",
       label: "100 %",
-    };
+    } as const;
   }
 
   if (percentConsumed >= 80) {
@@ -721,7 +673,7 @@ function toBudgetAlert({
       threshold: 80,
       severity: "warning",
       label: "80 %",
-    };
+    } as const;
   }
 
   if (percentConsumed >= 50) {
@@ -730,7 +682,7 @@ function toBudgetAlert({
       threshold: 50,
       severity: "info",
       label: "50 %",
-    };
+    } as const;
   }
 
   return null;

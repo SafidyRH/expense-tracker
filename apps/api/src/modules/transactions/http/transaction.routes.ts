@@ -1,28 +1,18 @@
 import { randomUUID } from "node:crypto";
 
-import { Hono } from "hono";
-
-import {
-  zValidator,
-} from "@hono/zod-validator";
-
-import type {
-  AuthEnv,
-} from "../../../middleware/auth.middleware.js";
-
 import {
   requireAuth,
 } from "../../../middleware/auth.middleware.js";
+
+import {
+  createOpenApiHono,
+} from "../../../openapi/hono.js";
 
 import {
   BadRequestError,
   InternalServerError,
   NotFoundError,
 } from "../../../shared/errors/index.js";
-
-import {
-  throwOnValidationError,
-} from "../../../shared/validation/zod-validator.js";
 
 import {
   CreateExpense,
@@ -37,12 +27,6 @@ import {
 import {
   PrismaTransactionRepository,
 } from "../infrastructure/prisma-transaction.repository.js";
-
-import {
-  createExpenseSchema,
-  createIncomeSchema,
-  createTransferSchema,
-} from "./transaction.schemas.js";
 
 import {
   toExpenseDto,
@@ -60,12 +44,15 @@ import {
 } from "../application/transaction-cursor.js";
 
 import {
-  transactionHistoryQuerySchema,
-} from "./transaction.schemas.js";
-
-import {
   toTransactionHistoryDto,
 } from "./transaction.mapper.js";
+
+import {
+  createExpenseRoute,
+  createIncomeRoute,
+  createTransferRoute,
+  listTransactionsRoute,
+} from "./transaction.openapi.js";
 
 import type {
   CreateExpenseError,
@@ -97,22 +84,15 @@ const createTransfer =
   );
 
 export const transactionRoutes =
-  new Hono<AuthEnv>();
+  createOpenApiHono();
 
 transactionRoutes.use(
   "*",
   requireAuth
 );
 
-transactionRoutes.post(
-  "/expenses",
-
-  zValidator(
-    "json",
-    createExpenseSchema,
-    throwOnValidationError
-  ),
-
+transactionRoutes.openapi(
+  createExpenseRoute,
   async (c) => {
     const session =
       c.get("session");
@@ -180,15 +160,8 @@ transactionRoutes.post(
   }
 );
 
-transactionRoutes.post(
-  "/incomes",
-
-  zValidator(
-    "json",
-    createIncomeSchema,
-    throwOnValidationError
-  ),
-
+transactionRoutes.openapi(
+  createIncomeRoute,
   async (c) => {
     const session =
       c.get("session");
@@ -256,15 +229,8 @@ transactionRoutes.post(
   }
 );
 
-transactionRoutes.post(
-  "/transfers",
-
-  zValidator(
-    "json",
-    createTransferSchema,
-    throwOnValidationError
-  ),
-
+transactionRoutes.openapi(
+  createTransferRoute,
   async (c) => {
     const session =
       c.get("session");
@@ -332,15 +298,8 @@ transactionRoutes.post(
   }
 );
 
-transactionRoutes.get(
-  "/",
-
-  zValidator(
-    "query",
-    transactionHistoryQuerySchema,
-    throwOnValidationError
-  ),
-
+transactionRoutes.openapi(
+  listTransactionsRoute,
   async (c) => {
     const session =
       c.get("session");
@@ -428,7 +387,7 @@ transactionRoutes.get(
 
         nextCursor,
       },
-    });
+    }, 200);
   }
 );
 

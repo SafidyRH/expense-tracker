@@ -5,6 +5,7 @@ export default {
     include: [
       "src/modules/**/test/*.unit.test.ts",
       "src/middleware/test/*.test.ts",
+      "src/openapi/*.test.ts",
     ],
 
     setupFiles: [

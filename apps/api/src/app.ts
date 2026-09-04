@@ -1,4 +1,6 @@
-import { Hono } from "hono";
+import {
+  swaggerUI,
+} from "@hono/swagger-ui";
 import { cors } from "hono/cors";
 
 import { prisma } from "@expense-tracker/database";
@@ -51,10 +53,18 @@ import {
   corsConfig,
 } from "./config/cors.js";
 
+import {
+  apiStatusRoute,
+  healthRoute,
+  meRoute,
+} from "./openapi/app.openapi.js";
+import {
+  createOpenApiHono,
+} from "./openapi/hono.js";
 
 
 const app =
-  new Hono<AppEnv>();
+  createOpenApiHono();
 
 app.onError(
   errorHandler
@@ -102,46 +112,18 @@ app.use(
 
 
 
-/*
- * Better Auth
- */
-app.on(
-  [
-    "POST",
-    "GET",
-  ],
-
-  "/api/auth/*",
-
-  (c) =>
-    auth.handler(
-      c.req.raw
-    )
-);
-
-/*
- * Health check
- */
-app.get(
-  "/health",
-  (c) =>
-    c.json({
-      status: "ok",
-    })
-);
-
 app.all("/api/auth/*", (c) => {
   return auth.handler(c.req.raw);
 });
 
-app.get("/", (c) => {
+app.openapi(apiStatusRoute, (c) => {
   return c.json({
     name: "Expense Tracker API",
     status: "running",
-  });
+  }, 200);
 });
 
-app.get("/health", async (c) => {
+app.openapi(healthRoute, async (c) => {
   const startedAt = performance.now();
 
   try {
@@ -157,7 +139,7 @@ app.get("/health", async (c) => {
       },
       databaseLatencyMs: latencyMs,
       timestamp: new Date().toISOString(),
-    });
+    }, 200);
   } catch (error) {
     console.error("Health check failed:", error);
 
@@ -175,12 +157,17 @@ app.get("/health", async (c) => {
   }
 });
 
-app.get("/me", requireAuth, (c) => {
+app.use(
+  "/me",
+  requireAuth
+);
+
+app.openapi(meRoute, (c) => {
   const session = c.get("session");
 
   return c.json({
     user: session!.user,
-  });
+  }, 200);
 });
 
 app.route(
@@ -198,6 +185,41 @@ app.route(
 app.route(
   "/api/transactions",
   transactionRoutes
+);
+
+app.openAPIRegistry.registerComponent(
+  "securitySchemes",
+  "sessionCookie",
+  {
+    type: "apiKey",
+    in: "cookie",
+    name:
+      "better-auth.session_token",
+    description:
+      "Better Auth session cookie.",
+  }
+);
+
+app.doc("/openapi.json", {
+  openapi: "3.0.0",
+  info: {
+    title: "Expense Tracker API",
+    version: "1.0.0",
+  },
+  servers: [
+    {
+      url: "http://localhost:3030",
+      description:
+        "Local development",
+    },
+  ],
+});
+
+app.get(
+  "/docs",
+  swaggerUI({
+    url: "/openapi.json",
+  })
 );
 
 app.notFound((c) => {
