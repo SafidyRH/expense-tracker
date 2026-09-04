@@ -366,6 +366,194 @@ describe("transactions integration", () => {
     expect(response.status).toBe(404);
   });
 
+  it("rejects BOLA expense creation with another user's account", async () => {
+    const userA = await createTestUser();
+    const userB = await createTestUser();
+    userIds.push(userA.id, userB.id);
+
+    const accountB =
+      await createTestAccount({
+        userId: userB.id,
+        initialBalanceMinor: 100_000n,
+      });
+    const categoryA =
+      await createTestCategory({
+        userId: userA.id,
+        type: "EXPENSE",
+      });
+
+    const response =
+      await app.request(
+        "/api/transactions/expenses",
+        {
+          method: "POST",
+          headers:
+            authHeaders(userA.id),
+          body: JSON.stringify({
+            accountId: accountB.id,
+            categoryId: categoryA.id,
+            amountMinor: "1000",
+            clientGeneratedId:
+              randomUUID(),
+          }),
+        }
+      );
+
+    expect(response.status).toBe(404);
+    await expectAccountBalance(
+      accountB.id,
+      100_000n
+    );
+  });
+
+  it("rejects BOLA expense creation with another user's category", async () => {
+    const userA = await createTestUser();
+    const userB = await createTestUser();
+    userIds.push(userA.id, userB.id);
+
+    const accountA =
+      await createTestAccount({
+        userId: userA.id,
+        initialBalanceMinor: 100_000n,
+      });
+    const categoryB =
+      await createTestCategory({
+        userId: userB.id,
+        type: "EXPENSE",
+      });
+
+    const response =
+      await app.request(
+        "/api/transactions/expenses",
+        {
+          method: "POST",
+          headers:
+            authHeaders(userA.id),
+          body: JSON.stringify({
+            accountId: accountA.id,
+            categoryId: categoryB.id,
+            amountMinor: "1000",
+            clientGeneratedId:
+              randomUUID(),
+          }),
+        }
+      );
+
+    expect(response.status).toBe(404);
+    await expectAccountBalance(
+      accountA.id,
+      100_000n
+    );
+  });
+
+  it("rejects BOLA transfers to another user's account", async () => {
+    const userA = await createTestUser();
+    const userB = await createTestUser();
+    userIds.push(userA.id, userB.id);
+
+    const sourceA =
+      await createTestAccount({
+        userId: userA.id,
+        initialBalanceMinor: 100_000n,
+      });
+    const destinationB =
+      await createTestAccount({
+        userId: userB.id,
+        initialBalanceMinor: 10_000n,
+      });
+
+    const response =
+      await app.request(
+        "/api/transactions/transfers",
+        {
+          method: "POST",
+          headers:
+            authHeaders(userA.id),
+          body: JSON.stringify({
+            fromAccountId:
+              sourceA.id,
+            toAccountId:
+              destinationB.id,
+            amountMinor: "1000",
+            clientGeneratedId:
+              randomUUID(),
+          }),
+        }
+      );
+
+    expect(response.status).toBe(404);
+    await expectAccountBalance(
+      sourceA.id,
+      100_000n
+    );
+    await expectAccountBalance(
+      destinationB.id,
+      10_000n
+    );
+  });
+
+  it("ignores BOPLA fields when creating an expense", async () => {
+    const userA = await createTestUser();
+    const userB = await createTestUser();
+    userIds.push(userA.id, userB.id);
+
+    const accountA =
+      await createTestAccount({
+        userId: userA.id,
+        initialBalanceMinor: 100_000n,
+      });
+    const categoryA =
+      await createTestCategory({
+        userId: userA.id,
+        type: "EXPENSE",
+      });
+
+    const response =
+      await app.request(
+        "/api/transactions/expenses",
+        {
+          method: "POST",
+          headers:
+            authHeaders(userA.id),
+          body: JSON.stringify({
+            userId: userB.id,
+            type: "INCOME",
+            status: "CANCELLED",
+            accountId: accountA.id,
+            categoryId: categoryA.id,
+            amountMinor: "1000",
+            clientGeneratedId:
+              randomUUID(),
+          }),
+        }
+      );
+
+    expect(response.status).toBe(201);
+
+    const body =
+      await parseJson<{
+        data: {
+          id: string;
+          type: string;
+          userId?: string;
+        };
+      }>(response);
+
+    expect(body.data.userId).toBeUndefined();
+    expect(body.data.type).toBe("EXPENSE");
+
+    const transaction =
+      await prisma.transaction.findUniqueOrThrow({
+        where: {
+          id: body.data.id,
+        },
+      });
+
+    expect(transaction.userId).toBe(userA.id);
+    expect(transaction.type).toBe("EXPENSE");
+    expect(transaction.status).toBe("CONFIRMED");
+  });
+
   it("returns 400 for invalid UUID payloads", async () => {
     const user = await createTestUser();
     userIds.push(user.id);
