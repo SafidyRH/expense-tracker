@@ -59,6 +59,9 @@ import {
   meRoute,
 } from "./openapi/app.openapi.js";
 import {
+  betterAuthOpenApiRoutes,
+} from "./openapi/auth.openapi.js";
+import {
   createOpenApiHono,
 } from "./openapi/hono.js";
 
@@ -199,6 +202,12 @@ app.openAPIRegistry.registerComponent(
       "Better Auth session cookie.",
   }
 );
+
+for (const route of betterAuthOpenApiRoutes) {
+  app.openAPIRegistry.registerPath(
+    route
+  );
+}
 
 app.doc("/openapi.json", {
   openapi: "3.0.0",
