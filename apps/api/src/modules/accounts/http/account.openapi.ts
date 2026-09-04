@@ -32,6 +32,7 @@ export const listAccountsRoute =
 
     description:
       "Returns the authenticated user's active financial accounts.",
+    "x-ownership": "user-collection",
 
     security: [
       {
@@ -73,6 +74,7 @@ export const listAccountsRoute =
 
     summary:
       "Create a financial account",
+    "x-ownership": "created-for-authenticated-user",
 
     security: [
       {
@@ -130,6 +132,7 @@ export const listAccountsRoute =
 
     summary:
       "Get a financial account",
+    "x-ownership": "path-id-must-belong-to-user",
 
     security: [
       {
@@ -182,6 +185,7 @@ export const listAccountsRoute =
 
     summary:
       "Update a financial account",
+    "x-ownership": "path-id-must-belong-to-user",
 
     security: [
       {
@@ -248,6 +252,7 @@ export const listAccountsRoute =
 
     description:
       "Soft archives an account. The account is not physically deleted.",
+    "x-ownership": "path-id-must-belong-to-user",
 
     security: [
       {

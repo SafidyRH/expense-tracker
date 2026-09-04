@@ -35,6 +35,7 @@ export const listCategoriesRoute =
       "List categories",
     description:
       "Returns system categories and the authenticated user's custom categories. Can be filtered by type.",
+    "x-ownership": "system-or-user-collection",
     security:
       categorySecurity,
     request: {
@@ -70,6 +71,7 @@ export const createCategoryRoute =
     ],
     summary:
       "Create a category",
+    "x-ownership": "created-for-authenticated-user",
     security:
       categorySecurity,
     request: {
@@ -114,6 +116,7 @@ export const updateCategoryRoute =
       "Update a category",
     description:
       "Updates one of the authenticated user's custom categories. System categories cannot be modified.",
+    "x-ownership": "path-id-must-belong-to-user",
     security:
       categorySecurity,
     request: {
@@ -162,6 +165,7 @@ export const archiveCategoryRoute =
       "Archive a category",
     description:
       "Soft archives one of the authenticated user's custom categories. System categories cannot be archived.",
+    "x-ownership": "path-id-must-belong-to-user",
     security:
       categorySecurity,
     request: {

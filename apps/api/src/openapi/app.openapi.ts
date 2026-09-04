@@ -121,6 +121,7 @@ export const apiStatusRoute =
     ],
     summary:
       "Get API status",
+    "x-public": true,
     responses: {
       200: {
         description:
@@ -146,6 +147,7 @@ export const healthRoute =
     ],
     summary:
       "Check API and database health",
+    "x-public": true,
     responses: {
       200: {
         description:
@@ -179,6 +181,7 @@ export const meRoute =
     ],
     summary:
       "Get the authenticated user",
+    "x-ownership": "self",
     security: [
       {
         sessionCookie: [],

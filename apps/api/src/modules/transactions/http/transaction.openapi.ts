@@ -37,6 +37,7 @@ export const listTransactionsRoute =
       "List transactions",
     description:
       "Returns a cursor-paginated transaction history for the authenticated user.",
+    "x-ownership": "user-collection",
     security:
       transactionSecurity,
     request: {
@@ -72,6 +73,7 @@ export const createExpenseRoute =
     ],
     summary:
       "Create an expense",
+    "x-ownership": "account-and-category-must-be-available-to-user",
     security:
       transactionSecurity,
     request: {
@@ -126,6 +128,7 @@ export const createIncomeRoute =
     ],
     summary:
       "Create an income",
+    "x-ownership": "account-and-category-must-be-available-to-user",
     security:
       transactionSecurity,
     request: {
@@ -180,6 +183,7 @@ export const createTransferRoute =
     ],
     summary:
       "Create a transfer",
+    "x-ownership": "both-accounts-must-belong-to-user",
     security:
       transactionSecurity,
     request: {

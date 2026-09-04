@@ -34,6 +34,7 @@ export const getBudgetOverviewRoute =
     ],
     summary:
       "Get a monthly budget overview",
+    "x-ownership": "user-month-scope",
     security:
       budgetSecurity,
     request: {
@@ -69,6 +70,7 @@ export const upsertGlobalBudgetRoute =
     ],
     summary:
       "Create or update the monthly global budget",
+    "x-ownership": "upserted-for-authenticated-user",
     security:
       budgetSecurity,
     request: {
@@ -115,6 +117,7 @@ export const upsertCategoryBudgetRoute =
       "Create or update a monthly category budget",
     description:
       "Allocates part of the monthly global budget to an expense category.",
+    "x-ownership": "category-id-must-belong-to-user-or-system",
     security:
       budgetSecurity,
     request: {
@@ -163,6 +166,7 @@ export const deleteCategoryBudgetRoute =
     ],
     summary:
       "Delete a monthly category budget",
+    "x-ownership": "category-id-scoped-to-authenticated-user",
     security:
       budgetSecurity,
     request: {
