@@ -39,4 +39,16 @@ export const auth = betterAuth({
       generateId: "uuid",
     },
   },
+
+  rateLimit: {
+    enabled:
+      process.env.NODE_ENV !==
+      "test",
+
+    window: 60,
+
+    max: 100,
+
+    storage: "memory",
+  },
 });
