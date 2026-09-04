@@ -14,7 +14,7 @@ import {
 
 import {
   errorHandler,
-} from "../error-handler";
+} from "../../shared/errors/error-handler";
 
 import type {
   AppEnv,
