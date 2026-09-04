@@ -9,6 +9,22 @@ import { requestLoggerMiddleware } from "./middleware/request-logger.middleware.
 import {
   securityHeaders,
 } from "./middleware/security.middleware.js";
+import {
+  apiBodyLimit,
+} from "./middleware/body-limit.middleware.js";
+import {
+  apiRateLimit,
+} from "./middleware/rate-limit.middleware.js";
+import {
+  apiTimeout,
+} from "./middleware/timeout.middleware.js";
+import {
+  requireJsonContentType,
+} from "./middleware/content-type.middleware.js";
+import {
+  apiMethodGuard,
+} from "./middleware/method-guard.middleware.js";
+
 
 import {
   accountRoutes,
@@ -25,7 +41,7 @@ import {
 
 import {
   errorHandler,
-} from "./middleware/error-handler.js";
+} from "./shared/errors/error-handler.js";
 import {
   apiErrorBody,
 } from "./shared/http/api-response.js";
@@ -40,18 +56,10 @@ import {
 const app =
   new Hono<AppEnv>();
 
-/*
- * Global error handling
- */
 app.onError(
   errorHandler
 );
 
-/*
- * Le logger doit être placé
- * très tôt pour capturer toutes
- * les requêtes.
- */
 app.use(
   "*",
   requestLoggerMiddleware
@@ -66,6 +74,33 @@ app.use(
   "/api/*",
   cors(corsConfig)
 );
+
+app.use(
+  "/api/*",
+  apiBodyLimit
+);
+
+app.use(
+  "/api/*",
+  apiRateLimit
+);
+
+app.use(
+  "/api/*",
+  apiTimeout
+);
+
+app.use(
+  "/api/*",
+  apiMethodGuard
+);
+
+app.use(
+  "/api/*",
+  requireJsonContentType
+);
+
+
 
 /*
  * Better Auth
